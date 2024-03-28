@@ -1,6 +1,4 @@
 from setuptools import find_packages, setup
-# import pkg_resources
-# from pathlib import Path
 import platform
 import sys
 
