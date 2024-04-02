@@ -1,179 +1,208 @@
-import os
-import sys
+
 from src.exception import CustomException
 from src.logger import logging
-from dataclasses import dataclass
-import pandas as pd
-import numpy as np
-
-@dataclass
-class DataIngestionConfig:
-    train_data_path: str = os.path.join("path")
-    val_data_path: str = os.path.join("new path")
-    raw_data_path: str = os.path.join("another path")
+import yaml
+import glob
+from src.components.data_transformation import *
+from utils import save_pickle, save_log
 
 
-class DataIngestion:
-    def __init__(self):
-        super().__init__()
-        self.ingestion_config = DataIngestionConfig()
+class DataLoader:
+    """
+        A class for loading data from a directory of mat and keypoint files.
+    """
 
-    def initiate_data_ingestion(self):
-        logging.info("Entered the data ingestion method")
-        try:
-            logging.info("Download dataset")
+    def __init__(self, config_path):
+        self.export_dir = None
+        self.sample = None
+        self.df_file = {}
+        self.sensor = []
+        self.pressure_map = []
+        self.keypoint = []
+        self.load_config(config_path)
+        self.locate_file_info()
+        return
 
-            os.makedirs(os.path.dirname(self.ingestion_config.train_data_path), exist_ok=True)  #
-
-            pass
-        except Exception as e:
-            logging.info("")
-            raise CustomException(e, sys)
-
-
-class ReadMat():
-    def __init__(self, file_path, loc_ele_map=None, pressure_ele_map=None, ui_grid=None):
+    def __call__(self, save_mode='pickle'):
         """
-                Initializes an instance of the ReadMat class.
-
-                Args:
-                    file_path (str): The path to the file containing the data to be read.
-                    loc_ele_map (array-like): An array-like object containing the mapping of location electrodes.
-                    pressure_ele_map (array-like): An array-like object containing the mapping of pressure electrodes.
-                    ui_grid (tuple): A tuple containing the dimensions of the grid used to read the data.
-
-                Attributes:
-                    file_path (str): The path to the file containing the data to be read.
-                    file_name (str): The name of the file containing the data to be read.
-                    df (pandas.DataFrame): A DataFrame containing the data read from the file.
-                    ui_grid (tuple): A tuple containing the dimensions of the grid used to read the data.
-                    time_stamp (numpy.ndarray): A numpy array containing the time stamp of the data.
-                    loc_ele_map (numpy.ndarray): An array containing the mapping of location electrodes.
-                    pressure_ele_map (numpy.ndarray): An array containing the mapping of pressure electrodes.
-                    sensor_num (int): The total number of sensors used.
-
+            Load data from mat and keypoint files and save it as pickle files.
         """
-        self.file_path = file_path
-        self.file_name = os.path.basename(os.path.splitext(self.file_path)[0]).split(' ')[-1]
-        try:
-            self.df = pd.read_csv(self.file_path, skiprows=7, index_col=0)
-            logging.info("read csv file")
-        except Exception as e:
-            logging.info("pd.read_csv file error")
-            raise CustomException(e, sys)
-        self.ui_grid = ui_grid  # (row in one module, column number in one module, number of module), MCU at left
-        self.df = self.df.iloc[range(0, len(self.df), self.ui_grid[
-            -1])]  # The df only updates one module in each row, only choose data every 6 rows
-        self.df.index = pd.to_datetime(self.df.index,
-                                       format='%m_%d_%Y_%H_%M_%S_%f')  # change time columnn to the correct format
-        self.time_stamp = self.df.index.to_numpy()
-        self.loc_ele_map = np.array(loc_ele_map)
-        self.pressure_ele_map = np.array(pressure_ele_map)
-        self.sensor_num = int(np.prod(self.loc_ele_map.shape) + np.prod(self.pressure_ele_map.shape))
+        # self.data = []
+        self.full_log = {'samples': {}}
 
-    def extract_pressure_data(self):
+        for sample_info in self.sample:
+
+            file_name = '_'.join([sample_info['date_folder'], sample_info['individual'], sample_info['set']])  #
+            self.find_mat_data(sample_info, file_name + '.csv')
+            logging.info("find mat data in " + file_name + 'csv')
+            self.find_keypoint_data(sample_info, file_name + '.csv')
+            logging.info("find keypoint data in " + file_name + 'csv')
+
+            data_aligner = AlignData(self.df_file)
+            data = data_aligner(frequency=self.frequency)
+            logging.info("Aligned data in sensor and keypoint")
+
+            # transfer keypoint coordinates to 3D heatmap
+            processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
+                                            axis_range=self.config['axis_range'])
+            data['heatmap'] = processor(data['keypoint'])
+            logging.info("Created heatmap")
+
+            self.update_link_limit(data['keypoint'])
+            logging.info("Changed link_limit")
+
+            data['log'] = sample_info
+            self.full_log['samples'][file_name] = sample_info
+
+            export_path = os.path.join(self.config['export_dir'], 'log', file_name + '.yml')
+            save_log(data['log'], export_path)
+
+            if save_mode == "pickle":
+                export_path = os.path.join(self.config['export_dir'], 'data', file_name + '.p')
+
+                save_pickle(data, export_path)
+
+            # self.data.append(data.copy())
+        self.full_log.update(self.config)
+
+        save_log(self.full_log, os.path.join(self.config['export_dir'], 'process_log.yml'))
+        # save_pickle(self.data, os.path.join(self.config['export_dir'], 'data.p'))
+
+    def update_link_limit(self, data):
         """
-        Extracts pressure data from the data read from the file.
-
-        Returns:
-            numpy.ndarray: A numpy array containing the pressure data.
-
+        Load keypoint data and calculate the link limit based on linked joints from self.config['link_limit']
         """
-        pressure_map = []
-        num_module = self.ui_grid[-1]
-        num_row = self.ui_grid[0]
-        num_col_per_module = self.ui_grid[1]
-        grid_in_module = self.ui_grid[0] * self.ui_grid[1]
-        for i in range(num_module):
-            data = self.df.iloc[:, i * grid_in_module: i * grid_in_module + grid_in_module]
-            data.iloc[:, 0] = data.iloc[:, 0].str.replace('[', '', regex=True)
-            data.iloc[:, -1] = data.iloc[:, -1].str.replace(']', '', regex=True)
-            data = data.astype(float).to_numpy()  # The data here has shape of (time_frame, 78)
-            pressure_map.append(data.reshape(len(data), num_row, num_col_per_module))
+        for idx, link_limit in enumerate(self.config['link_limit']):
+            link, limit = link_limit
+            joint1 = data[:, link[0] - 1, :]
+            joint2 = data[:, link[1] - 1, :]
+            length = np.linalg.norm(np.nan_to_num(joint2 - joint1, nan=np.inf), axis=1)
+            length = np.where(length > 1e6, np.nan, length)
+            max_length = np.nanmax(length).item()
+            min_length = np.nanmin(length).item()
+            if limit is None:
+                self.config['link_limit'][idx][-1] = [min_length, max_length]
 
-        pressure_map = np.dstack(pressure_map)
+            else:
+                self.config['link_limit'][idx][-1] = [min([min_length, self.config['link_limit'][idx][-1][0]]),
+                                                      max([max_length, self.config['link_limit'][idx][-1][1]])]
 
-        return pressure_map
+        return
 
-    def _signal_range(self):
-        bounds = {}
-        f = open(self.file_path, 'r')
-        for i in range(self.ui_grid[-1]):
-            line = f.readline()
-            bounds[i] = eval(line.split(':', 1)[1])
-        f.close()
-        for key in bounds:
-            bounds[key]['range'] = np.subtract(bounds[key]['maxs'], bounds[key]['mins'])
-        return bounds
-
-    def extract_sensor_data(self, normalise=True):
+    def load_config(self, config_path):
         """
-        Two data output:
-            1. location electrode data array of (time_frame, row, column) for whole mat, MCU on the left side.
-            2. pressure electrode data array of (time_frame, row, column) for whole mat, MCU on the left side.
+        Load configuration from config file:
+        - db_dir
+        - date_folder_list: include all if it's empty.
+        - individual_list: include all if it's empty.
+        - joints
+        - frequency
+        - add_noise: False or ratio float
+        - flip: False or axis int
+        - export_dir: The folder where configuration file sits
         """
 
-        # create empty arrays with the shape of (num_module, time_frame, row, column)
-        loc_ele_data = np.zeros((self.ui_grid[-1], len(self.df), *self.loc_ele_map.shape))
-        pressure_ele_data = np.zeros((self.ui_grid[-1], len(self.df), *self.pressure_ele_map.shape))
+        # Open the YAML file
+        with open(config_path, 'r') as file:
+            # Load the YAML data
+            self.config = yaml.load(file, Loader=yaml.FullLoader)
 
-        grid_num = np.prod(self.ui_grid)
-        if normalise:
-            bounds = self._signal_range()
-        for i in range(self.ui_grid[-1]):
-            data = self.df.iloc[:,
-                   grid_num + i * self.sensor_num: grid_num + (i + 1) * self.sensor_num]
-            data.iloc[:, 0] = data.iloc[:, 0].str.replace('[', '', regex=True)
-            data.iloc[:, -1] = data.iloc[:, -1].str.replace(']', '', regex=True)
-            data = data.astype(int)
-            data = data.to_numpy()  # in the sequence of electrode number from 0 to 40
-            if normalise:
-                data = np.subtract(data, bounds[i]['mins']) / bounds[i]['range']
+        for key, value in self.config.items():
+            # Assign configuration to self variable
+            setattr(self, key, value)
 
-            for iy, ix in np.ndindex(loc_ele_data.shape[-2:]):
-                loc_ele_data[i, :, iy, ix] = data[:, self.loc_ele_map[iy, ix]]
+        # Define the raw data is under the same folder
+        if self.db_dir == "":
+            self.db_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(config_path))), "raw")
+            print(self.db_dir)
 
-            for iy, ix in np.ndindex(pressure_ele_data.shape[-2:]):
-                pressure_ele_data[i, :, iy, ix] = data[:, self.pressure_ele_map[iy, ix]]
+        self.config['export_dir'] = os.path.dirname(config_path)
 
-        loc_ele_data = np.dstack(loc_ele_data)
-        pressure_ele_data = np.dstack(pressure_ele_data)
+        return
 
-        return loc_ele_data, pressure_ele_data
-
-    def add_noise(self, data, ratio=0.01):
+    def locate_file_info(self):
         """
-        Accept numpy array, add Gaussian noise
+            Find the mat recording file, keypoint matlab recording file for each sample
         """
-        data_range = np.max(data) - np.min(data)
-        noise = np.random.normal(0, data_range * ratio, data.shape)
-        return data + noise
+        self.sample = []
+        for date_path in glob.glob(os.path.join(self.db_dir, "*")):
+            date_folder = os.path.basename(date_path)
+            if date_folder in self.date_folder_list or self.date_folder_list is None:
+                with open(os.path.join(date_path, 'mat_info.yml'), 'r') as file:
+                    mat_info = yaml.load(file, Loader=yaml.FullLoader)
+                    self.config.update(mat_info)
+                for individual_path in glob.glob(os.path.join(date_path, "*")):
+                    if os.path.isfile(individual_path): continue
+                    individual_folder = os.path.basename(individual_path)
+                    if individual_folder in self.individual_list or self.individual_list is None:
 
-    def _array2df(self, data):
-        df = pd.DataFrame(data.reshape((len(data), -1)))
-        col_name = []
-        for iy, ix in np.ndindex(data.shape[-2:]):
-            col_name.append('row%d_col%d' % (iy, ix))
-        df.columns = col_name
-        df.index = self.time_stamp
-        return df
+                        with open(os.path.join(individual_path, 'info.yml'), 'r') as file:
+                            info = yaml.load(file, Loader=yaml.FullLoader)
+                        info['date_folder'] = date_folder
+                        info['individual'] = individual_folder
+                        info['marker_set_path'] = os.path.join(individual_path, 'keypoint_recording',
+                                                               'marker set list.csv')
 
-    def save_data(self, data, export_path):
+                        mat_recording_files = glob.glob(os.path.join(individual_path, 'mat_recording', '*.csv'))
+                        keypoint_recording_files = glob.glob(
+                            os.path.join(individual_path, 'keypoint_recording', '*.mat'))
+                        mat_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
+                                         mat_recording_files]
+                        keypoint_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
+                                              keypoint_recording_files]
+
+                        set_name = set(mat_recording).intersection(set(keypoint_recording))
+                        for one_set in list(set_name):
+                            info['set'] = one_set
+                            info['mat_recording'] = os.path.join(individual_path, 'mat_recording', one_set + '.csv')
+                            info['keypoint_recording'] = os.path.join(individual_path, 'keypoint_recording',
+                                                                      one_set + '.mat')
+                            self.sample.append(info.copy())
+        return
+
+    def find_mat_data(self, sample_info, file_name):
         """
-        Distinguish the pressure map data and electrode data by the type of data.
-        If it is array, it is pressure map data.
-        If it is tuple, it is electrode data.
+        In each sample, load the mat corner coordinates.
         """
-        if type(data) == tuple:
-            locaction_df = self._array2df(data[0]).add_suffix('_location')
-            pressure_df = self._array2df(data[1]).add_suffix('_pressure')
-            df = pd.concat([locaction_df, pressure_df], axis=1)
-        else:
-            df = self._array2df(data).add_suffix('_pressure_map')
 
-        if os.path.exists(os.path.dirname(export_path)):
-            None
-        else:
-            os.mkdir(os.path.dirname(export_path))
+        processor = ReadMat(sample_info['mat_recording'],
+                            loc_ele_map=self.config['location_ele_map'],
+                            pressure_ele_map=self.config['pressure_ele_map'],
+                            ui_grid=self.config['ui_grid'])
+        sensor_data = processor.extract_sensor_data()
+        export_path = os.path.join(self.config['export_dir'], 'sensor', file_name)
+        processor.save_data(sensor_data, export_path)
+        self.df_file['sensor'] = export_path
 
-        df.to_csv(export_path)
+        pressure_data = processor.extract_pressure_data()
+
+        export_path = os.path.join(self.config['export_dir'], 'pressure_map', file_name)
+        processor.save_data(pressure_data, export_path)
+        self.df_file['pressure_map'] = export_path
+        return
+
+    def find_keypoint_data(self, sample_info, file_name):
+        data_processor = ReadKeypoint(sample_info['keypoint_recording'],
+                                      joints=self.joints,
+                                      marker_set_path=sample_info['marker_set_path'],
+                                      merge_point_label=self.config['merge_point'],
+                                      axis_range=self.config['axis_range'])
+        centre = data_processor.mat_centre()
+        theta = data_processor.rotated_angle()
+        data = data_processor.skeleton_data()
+        data = data_processor.axis_transform(data, centre, theta)
+        data = data_processor.normalise(data)
+        # data = data_processor.cut_data(data, percentage=0.5)
+
+        export_path = os.path.join(self.config['export_dir'], 'keypoint', file_name)
+        data_processor.save_data(data, export_path)
+
+        self.df_file['keypoint'] = export_path
+        return
+
+    def augment_data(self):
+
+        # TODO
+        return
+

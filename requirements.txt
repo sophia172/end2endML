@@ -1,4 +1,5 @@
 tensorflow-gpu==2.9.*
 pandas
 numpy
--e .
+scipy
+pyyaml
