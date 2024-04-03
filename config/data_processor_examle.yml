@@ -1,0 +1,89 @@
+db_dir: "/Users/sophia/Library/CloudStorage/GoogleDrive-ying@tangi0.com/Shared drives/Grants & Competitions/Innovate UK_Smart Grant 2022/Software/machine_learning/Database/raw"
+
+date_folder_list: # write None if including all files
+  - "20221019"
+
+individual_list: # write None if including all files
+  - "1"
+
+
+joints:
+  'Right shoulder': 1
+  'Left shoulder': 2
+  'Right outside elbow': 3
+  'Left outside elbow': 4
+  'Right cluster fore arm 3': 5
+  'Left cluster fore arm 3': 6
+  'Right hip': 7
+  'Left hip': 8
+  'Right outside knee': 9
+  'Left outside knee': 10
+  'Right outside ankle': 11
+  'Left outside ankle': 12
+  'Right heal': 13
+  'Left heal': 14
+  'Right third toe': 15
+  'Left third toe': 16
+
+frequency: 10  # Hz
+
+add_noise: False # False or ratio (float)
+
+flip: False # False or axis (int), 0 is x, 1 is y, 2 is z
+
+axis_range: 32767 # The coordinate axis range from - to + for the keypoints
+
+heatmap_shape: [20, 20, 18]
+
+link_limit:
+  -
+    - [1,3]
+    -
+  -
+    - [3,5]
+    -
+  -
+    - [2,4]
+    -
+  -
+    - [4,6]
+    -
+  -
+    - [1,8]
+    -
+  -
+    - [2,7]
+    -
+  -
+    - [7,8]
+    -
+  -
+    - [7,9]
+    -
+  -
+    - [9,11]
+    -
+  -
+    - [13,11]
+    -
+  -
+    - [15,11]
+    -
+  -
+    - [13,15]
+    -
+  -
+    - [8,10]
+    -
+  -
+    - [10,12]
+    -
+  -
+    - [12,14]
+    -
+  -
+    - [12,16]
+    -
+  -
+    - [14,16]
+    -

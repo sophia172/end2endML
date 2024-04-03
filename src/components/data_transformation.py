@@ -1,12 +1,77 @@
 import sys
 from src.exception import CustomException
 from src.logger import logging
+from src.utils import *
 import pandas as pd
 from scipy.io import loadmat
 from utils import _check_file_unique_exist, reformat_keypoint, reformat_sensor
 import os
 import numpy as np
 import tensorflow as tf
+from dataclasses import dataclass
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+
+@dataclass
+class DataTransformationConfig:
+    # TODO
+    preprocessor_obj_file_path: str = os.path.join()
+
+
+class DataTransformation:
+    def __init__(self):
+        self.data_transformation_config = DataTransformationConfig()
+
+    def get_data_transformer_object(self):
+        try:
+            num_pipeline = Pipeline(
+                steps=[
+                        ("imputer", SimpleImputer(strategy="medium")),
+                        ("scaler", StandardScaler()),
+                ],
+            )
+            cat_pipeline = Pipeline(
+                steps=[
+                    ("imputer", SimpleImputer(strategy="most_frequent")),
+                    ("one_hot_encoder", OneHotEncoder()),
+                    ("scaler", StandardScaler()),
+                ],
+            )
+            logging.info("Numerical encoding completed")
+
+            preprocessor=ColumnTransformer(
+                [
+                    ("num_pipeline", num_pipeline, numerical_columns),
+                    ("cat_pipeline", cat_pipeline, categorical_columns)
+                ]
+            )
+            return preprocessor
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def initiate_data_transformation(self,train_path, test_path):
+        try:
+            # get data
+            preprocessing_obj = self.get_data_transformer_object()
+            target_column = []
+            numerical_columns = ["",""]
+
+            input_feature_train_array = preprocessing_obj.fit_transform(input_feature_train_df)
+            # TODO
+            # write function to extract train and test
+
+            save_pickle(
+                file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                obj=preprocessing_obj,
+            )
+            return (train_array, test_array, self.data_transformation_config.preprocessor_obj_file_path)
+
+        except Exception as e:
+            raise CustomException(e, sys)
+
+
 
 class ReadMat():
     def __init__(self, file_path, loc_ele_map=None, pressure_ele_map=None, ui_grid=None):

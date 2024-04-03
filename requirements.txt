@@ -3,3 +3,5 @@ pandas
 numpy
 scipy
 pyyaml
+scikit-learn
+#-e .

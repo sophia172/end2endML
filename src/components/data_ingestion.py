@@ -4,7 +4,14 @@ from src.logger import logging
 import yaml
 import glob
 from src.components.data_transformation import *
-from utils import save_pickle, save_log
+from utils import save_pickle, WriteYAML
+from dataclasses import dataclass
+
+@dataclass
+class DataLoaderConfig:
+    train_data_path: str = os.path.join()
+    test_data_path: str = os.path.join()
+    raw_data_path: str = os.path.join()
 
 
 class DataLoader:
@@ -12,7 +19,7 @@ class DataLoader:
         A class for loading data from a directory of mat and keypoint files.
     """
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, **kwargs):
         self.export_dir = None
         self.sample = None
         self.df_file = {}
@@ -21,6 +28,7 @@ class DataLoader:
         self.keypoint = []
         self.load_config(config_path)
         self.locate_file_info()
+        self.__dict__ = kwargs
         return
 
     def __call__(self, save_mode='pickle'):
@@ -55,7 +63,7 @@ class DataLoader:
             self.full_log['samples'][file_name] = sample_info
 
             export_path = os.path.join(self.config['export_dir'], 'log', file_name + '.yml')
-            save_log(data['log'], export_path)
+            WriteYAML(data['log'], export_path)
 
             if save_mode == "pickle":
                 export_path = os.path.join(self.config['export_dir'], 'data', file_name + '.p')
@@ -65,7 +73,7 @@ class DataLoader:
             # self.data.append(data.copy())
         self.full_log.update(self.config)
 
-        save_log(self.full_log, os.path.join(self.config['export_dir'], 'process_log.yml'))
+        WriteYAML(self.full_log, os.path.join(self.config['export_dir'], 'process_log.yml'))
         # save_pickle(self.data, os.path.join(self.config['export_dir'], 'data.p'))
 
     def update_link_limit(self, data):
