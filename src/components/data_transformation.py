@@ -15,61 +15,61 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 
 @dataclass
-class DataTransformationConfig:
-    # TODO
-    preprocessor_obj_file_path: str = os.path.join()
+# class DataTransformationConfig:
+#     # TODO
+#     preprocessor_obj_file_path: str = os.path.join()
 
 
-class DataTransformation:
-    def __init__(self):
-        self.data_transformation_config = DataTransformationConfig()
-
-    def get_data_transformer_object(self):
-        try:
-            num_pipeline = Pipeline(
-                steps=[
-                        ("imputer", SimpleImputer(strategy="medium")),
-                        ("scaler", StandardScaler()),
-                ],
-            )
-            cat_pipeline = Pipeline(
-                steps=[
-                    ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("one_hot_encoder", OneHotEncoder()),
-                    ("scaler", StandardScaler()),
-                ],
-            )
-            logging.info("Numerical encoding completed")
-
-            preprocessor=ColumnTransformer(
-                [
-                    ("num_pipeline", num_pipeline, numerical_columns),
-                    ("cat_pipeline", cat_pipeline, categorical_columns)
-                ]
-            )
-            return preprocessor
-        except Exception as e:
-            raise CustomException(e, sys)
-
-    def initiate_data_transformation(self,train_path, test_path):
-        try:
-            # get data
-            preprocessing_obj = self.get_data_transformer_object()
-            target_column = []
-            numerical_columns = ["",""]
-
-            input_feature_train_array = preprocessing_obj.fit_transform(input_feature_train_df)
-            # TODO
-            # write function to extract train and test
-
-            save_pickle(
-                file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                obj=preprocessing_obj,
-            )
-            return (train_array, test_array, self.data_transformation_config.preprocessor_obj_file_path)
-
-        except Exception as e:
-            raise CustomException(e, sys)
+# class DataTransformation:
+#     def __init__(self):
+#         self.data_transformation_config = DataTransformationConfig()
+#
+#     def get_data_transformer_object(self):
+#         try:
+#             num_pipeline = Pipeline(
+#                 steps=[
+#                         ("imputer", SimpleImputer(strategy="medium")),
+#                         ("scaler", StandardScaler()),
+#                 ],
+#             )
+#             cat_pipeline = Pipeline(
+#                 steps=[
+#                     ("imputer", SimpleImputer(strategy="most_frequent")),
+#                     ("one_hot_encoder", OneHotEncoder()),
+#                     ("scaler", StandardScaler()),
+#                 ],
+#             )
+#             logging.info("Numerical encoding completed")
+#
+#             preprocessor=ColumnTransformer(
+#                 [
+#                     ("num_pipeline", num_pipeline, numerical_columns),
+#                     ("cat_pipeline", cat_pipeline, categorical_columns)
+#                 ]
+#             )
+#             return preprocessor
+#         except Exception as e:
+#             raise CustomException(e, sys)
+#
+#     def initiate_data_transformation(self,train_path, test_path):
+#         try:
+#             # get data
+#             preprocessing_obj = self.get_data_transformer_object()
+#             target_column = []
+#             numerical_columns = ["",""]
+#
+#             input_feature_train_array = preprocessing_obj.fit_transform(input_feature_train_df)
+#             # TODO
+#             # write function to extract train and test
+#
+#             save_pickle(
+#                 file_path=self.data_transformation_config.preprocessor_obj_file_path,
+#                 obj=preprocessing_obj,
+#             )
+#             return (train_array, test_array, self.data_transformation_config.preprocessor_obj_file_path)
+#
+#         except Exception as e:
+#             raise CustomException(e, sys)
 
 
 
@@ -93,12 +93,14 @@ class ReadMat():
         """
         self.file_path = file_path
         self.file_name = os.path.basename(os.path.splitext(self.file_path)[0]).split(' ')[-1]
+
         try:
             self.df = pd.read_csv(self.file_path, skiprows=7, index_col=0)
             logging.info("read csv file")
         except Exception as e:
             logging.info("pd.read_csv file error")
             raise CustomException(e, sys)
+
         self.ui_grid = ui_grid  # (row in one module, column number in one module, number of module), MCU at left
         self.df = self.df.iloc[range(0, len(self.df), self.ui_grid[
             -1])]  # The df only updates one module in each row, only choose data every 6 rows

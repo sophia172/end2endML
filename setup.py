@@ -1,7 +1,9 @@
 from setuptools import find_packages, setup
 import platform
 import sys
-
+from src.logger import logging
+from src.exception import CustomException
+import subprocess
 HYPEN_E_DOT = "-e ."
 
 
@@ -25,8 +27,7 @@ def read_version(fname="src/version.py"):
 
 
 requirements = []
-if sys.platform.startswith("linux") and platform.machine() == "x86_64":
-    requirements.append("")
+
 
 setup(
     name="end2endML",

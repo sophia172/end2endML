@@ -8,10 +8,6 @@ from utils import save_pickle, WriteYAML
 from dataclasses import dataclass
 
 @dataclass
-class DataLoaderConfig:
-    train_data_path: str = os.path.join()
-    test_data_path: str = os.path.join()
-    raw_data_path: str = os.path.join()
 
 
 class DataLoader:
@@ -19,7 +15,7 @@ class DataLoader:
         A class for loading data from a directory of mat and keypoint files.
     """
 
-    def __init__(self, config_path, **kwargs):
+    def __init__(self, config_path=None, **kwargs):
         self.export_dir = None
         self.sample = None
         self.df_file = {}
@@ -39,12 +35,14 @@ class DataLoader:
         self.full_log = {'samples': {}}
 
         for sample_info in self.sample:
+            logging.info("start processing file ", sample_info)
+            file_name = '_'.join([sample_info['date_folder'], sample_info['individual'], sample_info['set']])
 
-            file_name = '_'.join([sample_info['date_folder'], sample_info['individual'], sample_info['set']])  #
             self.find_mat_data(sample_info, file_name + '.csv')
-            logging.info("find mat data in " + file_name + 'csv')
+            logging.info("found mat data in " + file_name + 'csv')
+
             self.find_keypoint_data(sample_info, file_name + '.csv')
-            logging.info("find keypoint data in " + file_name + 'csv')
+            logging.info("found keypoint data in " + file_name + 'csv')
 
             data_aligner = AlignData(self.df_file)
             data = data_aligner(frequency=self.frequency)
@@ -59,22 +57,8 @@ class DataLoader:
             self.update_link_limit(data['keypoint'])
             logging.info("Changed link_limit")
 
-            data['log'] = sample_info
-            self.full_log['samples'][file_name] = sample_info
-
-            export_path = os.path.join(self.config['export_dir'], 'log', file_name + '.yml')
-            WriteYAML(data['log'], export_path)
-
-            if save_mode == "pickle":
-                export_path = os.path.join(self.config['export_dir'], 'data', file_name + '.p')
-
-                save_pickle(data, export_path)
-
-            # self.data.append(data.copy())
-        self.full_log.update(self.config)
-
-        WriteYAML(self.full_log, os.path.join(self.config['export_dir'], 'process_log.yml'))
-        # save_pickle(self.data, os.path.join(self.config['export_dir'], 'data.p'))
+            writer(data, os.path.join('data', file_name + '.p'))
+        return os.path.join('data', '*.p')
 
     def update_link_limit(self, data):
         """
@@ -125,7 +109,6 @@ class DataLoader:
                 os.path.dirname(os.path.dirname(os.path.dirname(config_path))), "raw")
             print(self.db_dir)
 
-        self.config['export_dir'] = os.path.dirname(config_path)
 
         return
 

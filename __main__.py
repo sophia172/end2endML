@@ -1,3 +1,3 @@
-from .transcribe import cli
+from workflow import cli
 
 cli()

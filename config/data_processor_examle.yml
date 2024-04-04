@@ -1,4 +1,4 @@
-db_dir: "/Users/sophia/Library/CloudStorage/GoogleDrive-ying@tangi0.com/Shared drives/Grants & Competitions/Innovate UK_Smart Grant 2022/Software/machine_learning/Database/raw"
+db_dir: "g:/Shared drives/Grants & Competitions/Innovate UK_Smart Grant 2022/Software/machine_learning/Database/raw"
 
 date_folder_list: # write None if including all files
   - "20221019"
