@@ -4,6 +4,7 @@ import yaml
 import pickle
 from typing import Callable
 
+ROOT = os.path.dirname(os.getcwd())
 
 def save_pickle(data, file_path=''):
     with open(file_path, 'wb') as file:
@@ -16,9 +17,9 @@ def WriteYAML(data, file_path):
     return
 
 def writer(
-    result: dict, output_path: str
-) -> Callable[[str], None]:
-    output_format = os.path.basename(output_path).split("."[-1])
+            result: dict, output_path: str
+        ) -> Callable[[str], None]:
+    output_format = os.path.basename(output_path).split(".")[-1]
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     writers = {
         "p": save_pickle,

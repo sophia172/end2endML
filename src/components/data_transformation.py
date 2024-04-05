@@ -126,8 +126,8 @@ class ReadMat():
         grid_in_module = self.ui_grid[0] * self.ui_grid[1]
         for i in range(num_module):
             data = self.df.iloc[:, i * grid_in_module: i * grid_in_module + grid_in_module]
-            data.iloc[:, 0] = data.iloc[:, 0].str.replace('[', '', regex=True)
-            data.iloc[:, -1] = data.iloc[:, -1].str.replace(']', '', regex=True)
+            data.iloc[:, 0] = data.iloc[:, 0].str.replace('[', '')
+            data.iloc[:, -1] = data.iloc[:, -1].str.replace(']', '')
             data = data.astype(float).to_numpy()  # The data here has shape of (time_frame, 78)
             pressure_map.append(data.reshape(len(data), num_row, num_col_per_module))
 
@@ -161,8 +161,8 @@ class ReadMat():
         for i in range(self.ui_grid[-1]):
             data = self.df.iloc[:,
                    grid_num + i * self.sensor_num: grid_num + (i + 1) * self.sensor_num]
-            data.iloc[:, 0] = data.iloc[:, 0].str.replace('[', '', regex=True)
-            data.iloc[:, -1] = data.iloc[:, -1].str.replace(']', '', regex=True)
+            data.iloc[:, 0] = data.iloc[:, 0].astype(str).str.replace('[', '')
+            data.iloc[:, -1] = data.iloc[:, -1].astype(str).str.replace(']', '')
             data = data.astype(int)
             data = data.to_numpy()  # in the sequence of electrode number from 0 to 40
             if normalise:

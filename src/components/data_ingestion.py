@@ -6,8 +6,7 @@ import glob
 from src.components.data_transformation import *
 from utils import save_pickle, WriteYAML
 from dataclasses import dataclass
-
-@dataclass
+from src.utils import ROOT
 
 
 class DataLoader:
@@ -16,6 +15,8 @@ class DataLoader:
     """
 
     def __init__(self, config_path=None, **kwargs):
+
+        self.__dict__ = kwargs
         self.export_dir = None
         self.sample = None
         self.df_file = {}
@@ -24,15 +25,12 @@ class DataLoader:
         self.keypoint = []
         self.load_config(config_path)
         self.locate_file_info()
-        self.__dict__ = kwargs
         return
 
     def __call__(self, save_mode='pickle'):
         """
             Load data from mat and keypoint files and save it as pickle files.
         """
-        # self.data = []
-        self.full_log = {'samples': {}}
 
         for sample_info in self.sample:
             logging.info("start processing file ", sample_info)
@@ -49,15 +47,14 @@ class DataLoader:
             logging.info("Aligned data in sensor and keypoint")
 
             # transfer keypoint coordinates to 3D heatmap
-            processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
-                                            axis_range=self.config['axis_range'])
-            data['heatmap'] = processor(data['keypoint'])
-            logging.info("Created heatmap")
+            # processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
+            #                                 axis_range=self.config['axis_range'])
+            # data['heatmap'] = processor(data['keypoint'])
+            # logging.info("Created heatmap")
 
             self.update_link_limit(data['keypoint'])
             logging.info("Changed link_limit")
-
-            writer(data, os.path.join('data', file_name + '.p'))
+            writer(data, os.path.join(ROOT, 'data', file_name + '.p'))
         return os.path.join('data', '*.p')
 
     def update_link_limit(self, data):
@@ -103,12 +100,8 @@ class DataLoader:
             # Assign configuration to self variable
             setattr(self, key, value)
 
-        # Define the raw data is under the same folder
-        if self.db_dir == "":
-            self.db_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(config_path))), "raw")
-            print(self.db_dir)
-
+        # # Define the raw data is under the same folder
+        self.db_dir = os.path.join(ROOT, "raw_data")
 
         return
 
@@ -162,13 +155,13 @@ class DataLoader:
                             pressure_ele_map=self.config['pressure_ele_map'],
                             ui_grid=self.config['ui_grid'])
         sensor_data = processor.extract_sensor_data()
-        export_path = os.path.join(self.config['export_dir'], 'sensor', file_name)
+        export_path = os.path.join(ROOT, 'data', 'sensor', file_name)
         processor.save_data(sensor_data, export_path)
         self.df_file['sensor'] = export_path
 
         pressure_data = processor.extract_pressure_data()
 
-        export_path = os.path.join(self.config['export_dir'], 'pressure_map', file_name)
+        export_path = os.path.join(ROOT, 'data', 'pressure_map', file_name)
         processor.save_data(pressure_data, export_path)
         self.df_file['pressure_map'] = export_path
         return
@@ -186,7 +179,7 @@ class DataLoader:
         data = data_processor.normalise(data)
         # data = data_processor.cut_data(data, percentage=0.5)
 
-        export_path = os.path.join(self.config['export_dir'], 'keypoint', file_name)
+        export_path = os.path.join(ROOT, 'data', 'keypoint', file_name)
         data_processor.save_data(data, export_path)
 
         self.df_file['keypoint'] = export_path
