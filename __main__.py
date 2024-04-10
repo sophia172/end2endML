@@ -1,3 +1,3 @@
-from workflow import cli
+from src.workflow import cli
 
 cli()

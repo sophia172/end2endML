@@ -6,6 +6,7 @@ from typing import Callable
 
 ROOT = os.path.dirname(os.getcwd())
 
+
 def save_pickle(data, file_path=''):
     with open(file_path, 'wb') as file:
         pickle.dump(data, file)
@@ -16,9 +17,10 @@ def WriteYAML(data, file_path):
         yaml.dump(data, file)
     return
 
+
 def writer(
-            result: dict, output_path: str
-        ) -> Callable[[str], None]:
+        result: dict, output_path: str
+) -> Callable[[str], None]:
     output_format = os.path.basename(output_path).split(".")[-1]
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     writers = {
@@ -26,6 +28,7 @@ def writer(
         "yml": WriteYAML,
     }
     return writers[output_format](result, output_path)
+
 
 def reformat_pressure_map(df):
     """

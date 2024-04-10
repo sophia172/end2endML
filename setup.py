@@ -1,9 +1,4 @@
 from setuptools import find_packages, setup
-import platform
-import sys
-from src.logger import logging
-from src.exception import CustomException
-import subprocess
 HYPEN_E_DOT = "-e ."
 
 
@@ -34,7 +29,7 @@ setup(
     version=read_version(),
     author="Ying Liu",
     author_email="sophia.j.liu@gmail.com",
-    pckages=find_packages(),
+    # pckages=find_packages(),
     python_requires="==3.8.*",
     # install_requires=[
     #     str(r)
@@ -46,6 +41,6 @@ setup(
     description="End to End Machine Learning Project template",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    readme="README.md",
+    # readme="README.md",
     license="MIT",
 )

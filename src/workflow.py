@@ -4,7 +4,7 @@ import os
 from src.exception import CustomException
 from src.logger import logging
 import sys
-from src.components.data_ingestion import DataLoader
+from src.components.data_ingestion import DataProcessor
 from src.utils import ROOT
 def cli():
     """
@@ -61,8 +61,8 @@ def cli():
     if process_raw_data:
         data_config_path = download_if_not_exist(path=data_config_path)
         download_if_not_exist(path=raw_data_path)
-        dataLoader = DataLoader(config_path=data_config_path)
-        data_path = dataLoader()
+        processor = DataProcessor(config_path=data_config_path)
+        data_path = processor()
         upload(data_path)
         logging.info(f"Clean data saved and uploaded: {data_path}", )
 
