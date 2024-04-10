@@ -1,13 +1,16 @@
 import numpy as np
+import sys
 import os
 import yaml
 import pickle
 from typing import Callable
+from src.exception import CustomException
+from src.logger import logging
 
 ROOT = os.path.dirname(os.getcwd())
 
 
-def save_pickle(data, file_path=''):
+def WritePickle(data, file_path=''):
     with open(file_path, 'wb') as file:
         pickle.dump(data, file)
 
@@ -24,10 +27,41 @@ def writer(
     output_format = os.path.basename(output_path).split(".")[-1]
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     writers = {
-        "p": save_pickle,
+        "p": WritePickle,
         "yml": WriteYAML,
     }
     return writers[output_format](result, output_path)
+
+
+def reader(
+        input_path: str
+) -> Callable[[str], None]:
+    input_format = os.path.basename(input_path).split(".")[-1]
+    readers = {
+        "p": ReadPickle,
+        "yml": ReadYAML,
+    }
+    return readers[input_format](input_path)
+
+
+def ReadYAML(file_path: str):
+    with open(file_path, 'r') as stream:
+        try:
+            data = yaml.safe_load(stream)
+            logging.info(f"Successfully load data from {file_path}")
+            return data
+        except yaml.YAMLError as e:
+            raise CustomException(e, sys)
+
+
+def ReadPickle(file_path: str):
+    with open(file_path, 'rb') as stream:
+        try:
+            data = pickle.load(stream)
+            logging.info(f"Successfully load data from {file_path}")
+            return data
+        except yaml.YAMLError as e:
+            raise CustomException(e, sys)
 
 
 def reformat_pressure_map(df):
