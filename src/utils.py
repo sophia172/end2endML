@@ -6,8 +6,48 @@ import pickle
 from typing import Callable
 from src.exception import CustomException
 from src.logger import logging
+from dataclasses import dataclass
 
-ROOT = os.path.dirname(os.getcwd())
+def _root():
+    for path in os.walk(os.getcwd()):
+        path = os.path.split(path[0])
+        if path[-1] == "src":
+            src_path = os.path.join(os.getcwd(), *path)
+            return os.path.dirname(src_path)
+
+    dir_path = os.getcwd()
+    for _ in range(3):
+        dir_path = os.path.dirname(dir_path)
+
+        for path in os.walk(dir_path):
+            path = os.path.split(path[0])
+            if path[-1] == "src":
+                src_path = os.path.join(*path)
+                return os.path.dirname(src_path)
+    logging.info(f"Cannot locate root file.")
+    raise CustomException(Exception, sys)
+
+
+ROOT = _root()
+
+
+@dataclass
+class AttrDict(dict):
+    """
+    Dictionary subclass whose entries can be accessed by attributes (as well
+        as normally).
+    """
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    @classmethod
+    def from_nested_dicts(cls, data):
+        """ Construct nested AttrDicts from nested dictionaries. """
+        if not isinstance(data, dict):
+            return data
+        else:
+            return cls({key: cls.from_nested_dicts(data[key]) for key in data})
 
 
 def WritePickle(data, file_path=''):
@@ -137,3 +177,7 @@ def _check_file_unique_exist(file_path):
             return file
         except:
             raise FileNotFoundError('Check the file path %s' % file_path)
+
+if __name__=="__main__":
+    print(ROOT)
+    pass

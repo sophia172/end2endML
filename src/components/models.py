@@ -1,16 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from dataclasses import dataclass
-from utils import reader
-
-
-@dataclass
-class ModelConfig(dict):
-    model: list
-    train: dict
-
-    def __getattr__(self, item):
-        return self.get(item)
+from utils import reader, ROOT, AttrDict
+import os
 
 
 class Conv3dBlock:
@@ -92,34 +84,45 @@ class FlattenBlock:
 
     def __call__(self, x):
         x = tf.keras.layers.Flatten()(x)
-        x = tf.keras.layers.Dense(np.prod(self.reshape), name=self.name + "_resize")(x)
+        if self.reshape is not None:
+            x = tf.keras.layers.Dense(np.prod(self.reshape), name=self.name + "_resize")(x)
         x = tf.keras.layers.Activation(self.activation, name=self.name + "_activation")(x)
         x = tf.keras.layers.Dropout(self.dropout, name=self.name + "_dropout")(x)
         if self.reshape is not None:
-            x = tf.keras.layers.Reshape((self.reshape[1:], self.reshape[0]))(x)
+            x = tf.keras.layers.Reshape((*self.reshape[1:], self.reshape[0]))(x)
         return x
 
-
+from pathlib import Path
 class CNN(tf.keras.Model):
     def __init__(self, configuration_path):
         super().__init__()
-        self.load_config(configuration_path)
+        self.config = None
+        self.load_config(os.path.join(ROOT,*os.path.split(configuration_path)))
         return
 
     def load_config(self, configuration_path):
-        self.config = ModelConfig(**reader(configuration_path))
+        self.config = AttrDict.from_nested_dicts(reader(configuration_path))
 
     def build(self, **kwargs):
-        InputLayer = tf.keras.layers.Input()
+        InputLayer = tf.keras.layers.Input(shape=self.config.train.input.shape)
         x = InputLayer
+        x = tf.expand_dims(x, axis=-1)
 
         for block in self.config.model:
-            model = eval(block)
-            x = model(**block)(x)
+            for model, params in block.items():
+                model = eval(model)
+            x = model(**params)(x)
+            print(x)
 
         x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
         x = tf.keras.activations.tanh(x) * np.pi
 
         OutputLayer = x
 
-        return InputLayer, OutputLayer
+        model = tf.keras.Model(InputLayer, OutputLayer)
+        return model.summary()
+
+
+if __name__=="__main__":
+    model = CNN("config/model_params_example.yml")
+    model.build()
