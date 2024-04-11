@@ -217,6 +217,11 @@ class CNN(tf.keras.Model):
         except Exception as e:
             raise CustomException(e, sys)
 
+    def optimizer(self):
+        try:
+
+        except Exception as e:
+            raise CustomException(e, sys)
     def fit(self):
         try:
             self.model
