@@ -3,7 +3,9 @@ import numpy as np
 from dataclasses import dataclass
 from utils import reader, ROOT, AttrDict
 import os
-
+import sys
+from src.exception import CustomException
+from src.logger import logging
 
 class Conv3dBlock:
     def __init__(self,
@@ -35,6 +37,7 @@ class Conv3dBlock:
                                        name=self.name + "_activation")(x)
         x = tf.keras.layers.Dropout(self.dropout,
                                     name=self.name + "_dropout")(x)
+        logging.info(f"Built Conv3D block {self.name}")
         return x
 
 
@@ -68,6 +71,8 @@ class Conv2dBlock:
                                        name=self.name + "_activation")(x)
         x = tf.keras.layers.Dropout(self.dropout,
                                     name=self.name + "_dropout")(x)
+
+        logging.info(f"Built Conv2D block {self.name}")
         return x
 
 
@@ -90,6 +95,8 @@ class FlattenBlock:
         x = tf.keras.layers.Dropout(self.dropout, name=self.name + "_dropout")(x)
         if self.reshape is not None:
             x = tf.keras.layers.Reshape((*self.reshape[1:], self.reshape[0]))(x)
+
+        logging.info(f"Built flatten block {self.name}")
         return x
 
 from pathlib import Path
@@ -104,23 +111,27 @@ class CNN(tf.keras.Model):
         self.config = AttrDict.from_nested_dicts(reader(configuration_path))
 
     def build(self, **kwargs):
-        InputLayer = tf.keras.layers.Input(shape=self.config.train.input.shape)
-        x = InputLayer
-        x = tf.expand_dims(x, axis=-1)
+        try:
+            InputLayer = tf.keras.layers.Input(shape=self.config.train.input.shape)
+            x = InputLayer
+            x = tf.expand_dims(x, axis=-1)
 
-        for block in self.config.model:
-            for model, params in block.items():
-                model = eval(model)
-            x = model(**params)(x)
-            print(x)
+            for block in self.config.model:
+                for model, params in block.items():
+                    model = eval(model)
+                x = model(**params)(x)
 
-        x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
-        x = tf.keras.activations.tanh(x) * np.pi
+            x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
+            x = tf.keras.activations.tanh(x) * np.pi
 
-        OutputLayer = x
+            OutputLayer = x
 
-        model = tf.keras.Model(InputLayer, OutputLayer)
-        return model.summary()
+            model = tf.keras.Model(InputLayer, OutputLayer)
+            model.summary(print_fn=logging.info)
+
+            return
+        except Exception as e:
+            raise CustomException(e, sys)
 
 
 if __name__=="__main__":
