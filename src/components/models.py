@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-from dataclasses import dataclass
 from utils import reader, ROOT, AttrDict
 import os
 import sys
@@ -99,11 +98,84 @@ class FlattenBlock:
         logging.info(f"Built flatten block {self.name}")
         return x
 
-from pathlib import Path
+
+class csv_logger():
+
+    def __init__(self, filename="training_log.csv"):
+        self.filename = filename
+        return
+
+    def __call__(self, log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, self.filename)
+        logging.info(f"Add callback CSVLogger")
+        return tf.keras.callbacks.CSVLogger(log_path)
+
+class save_each_epoch():
+    def __init__(self,
+                 monitor='val_loss',
+                 verbose=0,
+                 save_best_only=False,
+                 save_weights_only=True,
+                 mode='auto',
+                 period=1
+                 ):
+        self.monitor = monitor
+        self.verbose = verbose
+        self.save_best_only = save_best_only
+        self.save_weights_only = save_weights_only
+        self.mode = mode
+        self.period = period
+
+    def __call__(self, log_dir):
+        self.log_path = os.path.join(log_dir, 'savepoint{epoch:02d}-{val_loss:.2f}')
+        logging.info(f"Add callback save each epoch")
+        return tf.keras.callbacks.ModelCheckpoint(
+                                                    self.log_path,
+                                                    monitor=self.monitor,
+                                                    verbose=self.verbose,
+                                                    save_best_only=self.save_best_only,
+                                                    save_weights_only=self.save_weights_only,
+                                                    mode=self.mode,
+                                                    period=self.period
+                                                )
+
+
+class early_stopping():
+    def __init__(self,
+                 monitor='val_loss',
+                 min_delta=0,
+                 patience=3,
+                 verbose=0,
+                 mode='auto',
+                 baseline=None,
+                 restore_best_weights=False,
+                 ):
+        self.monitor = monitor
+        self.min_delta = min_delta
+        self.patience = patience
+        self.verbose = verbose
+        self.mode = mode
+        self.baseline = baseline
+        self.restore_best_weights = restore_best_weights
+
+    def __call__(self, log_dir):
+        logging.info(f"Add callback early stopping")
+        return tf.keras.callbacks.EarlyStopping(
+                                        monitor=self.monitor,
+                                        min_delta=self.min_delta,
+                                        patience=self.patience,
+                                        verbose=self.verbose,
+                                        mode=self.mode,
+                                        baseline=self.baseline,
+                                        restore_best_weights=self.restore_best_weights,
+                                    )
 class CNN(tf.keras.Model):
     def __init__(self, configuration_path):
         super().__init__()
+        self.model = None
         self.config = None
+        self.config_filename = os.path.basename(configuration_path).split(".")[0]
         self.load_config(os.path.join(ROOT,*os.path.split(configuration_path)))
         return
 
@@ -126,14 +198,32 @@ class CNN(tf.keras.Model):
 
             OutputLayer = x
 
-            model = tf.keras.Model(InputLayer, OutputLayer)
-            model.summary(print_fn=logging.info)
+            self.model = tf.keras.Model(InputLayer, OutputLayer)
+            self.model.summary(print_fn=logging.info)
 
             return
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def callbacks(self):
+        try:
+            log_dir = os.path.join(ROOT, "model", self.config_filename, "log", "training_logs.csv")
+            os.makedirs(log_dir, exist_ok=True)
+            callback_list = []
+            for callback, params in self.config.train.callbacks.items():
+                callback = eval(callback)
+                callback_list.append(callback(**params)(log_dir))
+            return callback_list
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def fit(self):
+        try:
+            self.model
         except Exception as e:
             raise CustomException(e, sys)
 
 
 if __name__=="__main__":
     model = CNN("config/model_params_example.yml")
-    model.build()
+    model.callbacks()

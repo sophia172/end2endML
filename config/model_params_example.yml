@@ -88,16 +88,15 @@ train:
       baseline: None
       restore_best_weights: False
     csv_logger:
-      path: log/training_loss
+      filename: training_loss.csv
     save_each_epoch:
-      path: savepoint
       monitor: val_loss
       verbose: 0
       save_best_only: False
       save_weights_only: True
-      mode: 'auto'
+      mode: auto
       period: 1
-  loss: custom_loss
+  loss: MAE
   batch_size: 64
   epochs: 100
 
