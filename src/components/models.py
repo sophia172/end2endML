@@ -6,6 +6,7 @@ import sys
 from src.exception import CustomException
 from src.logger import logging
 
+
 class Conv3dBlock:
     def __init__(self,
                  filters=32,
@@ -109,7 +110,8 @@ class csv_logger():
         os.makedirs(log_dir, exist_ok=True)
         log_path = os.path.join(log_dir, self.filename)
         logging.info(f"Add callback CSVLogger")
-        return tf.keras.callbacks.CSVLogger(log_path)
+        return tf.keras.callbacks.CSVLogger(log_path, append=True)
+
 
 class save_each_epoch():
     def __init__(self,
@@ -131,14 +133,14 @@ class save_each_epoch():
         self.log_path = os.path.join(log_dir, 'savepoint{epoch:02d}-{val_loss:.2f}')
         logging.info(f"Add callback save each epoch")
         return tf.keras.callbacks.ModelCheckpoint(
-                                                    self.log_path,
-                                                    monitor=self.monitor,
-                                                    verbose=self.verbose,
-                                                    save_best_only=self.save_best_only,
-                                                    save_weights_only=self.save_weights_only,
-                                                    mode=self.mode,
-                                                    period=self.period
-                                                )
+            self.log_path,
+            monitor=self.monitor,
+            verbose=self.verbose,
+            save_best_only=self.save_best_only,
+            save_weights_only=self.save_weights_only,
+            mode=self.mode,
+            period=self.period
+        )
 
 
 class early_stopping():
@@ -162,25 +164,75 @@ class early_stopping():
     def __call__(self, log_dir):
         logging.info(f"Add callback early stopping")
         return tf.keras.callbacks.EarlyStopping(
-                                        monitor=self.monitor,
-                                        min_delta=self.min_delta,
-                                        patience=self.patience,
-                                        verbose=self.verbose,
-                                        mode=self.mode,
-                                        baseline=self.baseline,
-                                        restore_best_weights=self.restore_best_weights,
-                                    )
+            monitor=self.monitor,
+            min_delta=self.min_delta,
+            patience=self.patience,
+            verbose=self.verbose,
+            mode=self.mode,
+            baseline=self.baseline,
+            restore_best_weights=self.restore_best_weights,
+        )
+
+
+class Adam():
+    def __init__(self,
+                 learning_rate=0.0001,
+                 weight_decay=0.03,
+                 ):
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+
+    def __call__(self):
+        logging.info(f"Add Adam optimiser.")
+        return tf.keras.optimizers.Adam(
+            learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay
+        )
+
+
+class MSE:
+    def __init__(self):
+        return
+
+    def __call__(self):
+        logging.info(f"Add MSE loss.")
+        return tf.keras.losses.MeanSquaredError()
+
+
+class MAE():
+    def __init__(self):
+        super().__init__()
+        return
+
+    def __call__(self):
+        logging.info(f"Add MAE loss.")
+        return tf.keras.losses.MeanAbsoluteError()
+
+
+class customLoss():
+    def __init__(self):
+        return
+
+    def __call__(self):
+        logging.info(f"Add custom loss.")
+        return tf.keras.losses.MSE()
+
+
 class CNN(tf.keras.Model):
     def __init__(self, configuration_path):
         super().__init__()
+        self.model_dir = None
         self.model = None
         self.config = None
         self.config_filename = os.path.basename(configuration_path).split(".")[0]
-        self.load_config(os.path.join(ROOT,*os.path.split(configuration_path)))
+        self.load_config(os.path.join(ROOT, *os.path.split(configuration_path)))
         return
 
     def load_config(self, configuration_path):
         self.config = AttrDict.from_nested_dicts(reader(configuration_path))
+        self.model_dir = os.path.join(ROOT, "model", self.config_filename)
+        os.makedirs(self.model_dir, exist_ok=True)
+        logging.info(f"Creating model folder {self.config_filename}")
 
     def build(self, **kwargs):
         try:
@@ -207,7 +259,7 @@ class CNN(tf.keras.Model):
 
     def callbacks(self):
         try:
-            log_dir = os.path.join(ROOT, "model", self.config_filename, "log", "training_logs.csv")
+            log_dir = os.path.join(self.model_dir, "log")
             os.makedirs(log_dir, exist_ok=True)
             callback_list = []
             for callback, params in self.config.train.callbacks.items():
@@ -219,16 +271,57 @@ class CNN(tf.keras.Model):
 
     def optimizer(self):
         try:
-
+            for optimizer, params in self.config.train.optimizer.items():
+                optimizer = eval(optimizer)(**params)()
+                logging.info(f"Optimizer configuration: \n {optimizer.get_config()}")
+            return optimizer
         except Exception as e:
             raise CustomException(e, sys)
-    def fit(self):
+
+    def loss(self):
         try:
-            self.model
+            loss = eval(self.config.train.loss)()
+            logging.info(f"Loss {self.config.train.loss} added.")
+            return loss()
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def compile(self):
+        try:
+            logging.info(f"Compiling model with loss {self.config.train.loss}")
+            return self.model.compile(optimizer=self.optimizer(), loss=self.loss())
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def fit(self, trainset, validset, retrain=False):
+        try:
+            saved_model_path = os.path.join(self.model_dir, "saved_model")
+            if retrain and os.path.exists(saved_model_path):
+                saved_model = tf.keras.models.load_model(saved_model_path)
+                self.model.set_weights(saved_model.get_weights())
+            self.model.fit(
+                trainset,
+                validation_data=validset,
+                epochs=self.config.train.epochs,
+                batch_size=self.config.train.batch_size,
+                callbacks=self.callbacks(),
+                verbose=self.config.train.verbose
+            )
+            logging.info(f"Fitting process finished")
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def save(self):
+        try:
+            saved_model_path = os.path.join(self.model_dir, "saved_model")
+            self.model.save(saved_model_path)
+            logging.info(f"Model saved at {saved_model_path}")
         except Exception as e:
             raise CustomException(e, sys)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     model = CNN("config/model_params_example.yml")
-    model.callbacks()
+    model.build()
+    model.compile()
+    model.save()

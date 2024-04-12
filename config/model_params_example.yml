@@ -75,9 +75,9 @@ train:
       - 13
       - 24
   optimizer:
-    script_path: adam
-    initial_lr: 0.0001
-    decay: 0.003
+    Adam:
+      learning_rate: 0.0001
+      weight_decay: 0.003
   callbacks:
     early_stopping:
       monitor: val_loss
@@ -99,5 +99,6 @@ train:
   loss: MAE
   batch_size: 64
   epochs: 100
+  verbose: 1
 
 
