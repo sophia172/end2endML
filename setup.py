@@ -38,6 +38,9 @@ setup(
     #     )
     # ],
     install_requires=get_requirements("requirements.txt"),
+    entry_points={
+            "console_scripts": ["ppit=__main__:cli"],
+        },
     description="End to End Machine Learning Project template",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
