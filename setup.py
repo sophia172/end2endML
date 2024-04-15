@@ -25,7 +25,7 @@ requirements = []
 
 
 setup(
-    name="end2endML",
+    name="ppit",
     version=read_version(),
     author="Ying Liu",
     author_email="sophia.j.liu@gmail.com",
