@@ -1,19 +1,15 @@
 import sys
 from src.exception import CustomException
 from src.logger import logging
-from src.utils import *
-import pandas as pd
-from scipy.io import loadmat
-from utils import _check_file_unique_exist, reformat_keypoint, reformat_sensor
+from src.utils import _check_file_unique_exist, reader, load_config
 import os
 import numpy as np
-import tensorflow as tf
+import pandas as pd
+from scipy.io import loadmat
+from src.components.data_transformation import *
 from dataclasses import dataclass
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-
+from src.utils import ROOT, writer
+import glob
 @dataclass
 # class DataTransformationConfig:
 #     # TODO
@@ -71,6 +67,158 @@ from sklearn.impute import SimpleImputer
 #         except Exception as e:
 #             raise CustomException(e, sys)
 
+class DataProcessor:
+    """
+        A class for loading data from a directory of mat and keypoint files.
+    """
+
+    def __init__(self, config_path=None, **kwargs):
+
+        self.__dict__ = kwargs
+        self.export_dir = None
+        self.sample = None
+        self.df_file = {}
+        self.sensor = []
+        self.pressure_map = []
+        self.keypoint = []
+        self.config_filename, self.config, self.db_dir = load_config(config_path, folder="raw_data")
+        self.locate_file_info()
+        return
+
+    def __call__(self, save_mode='pickle'):
+        """
+            Load data from mat and keypoint files and save it as pickle files.
+        """
+
+        for sample_info in self.sample:
+            logging.info("start processing file ", sample_info)
+            file_name = '_'.join([sample_info['date_folder'], sample_info['individual'], sample_info['set']])
+
+            self.find_mat_data(sample_info, file_name + '.csv')
+            logging.info("found mat data in " + file_name + 'csv')
+
+            self.find_keypoint_data(sample_info, file_name + '.csv')
+            logging.info("found keypoint data in " + file_name + 'csv')
+
+            data_aligner = AlignData(self.df_file)
+            data = data_aligner(frequency=self.frequency)
+            logging.info("Aligned data in sensor and keypoint")
+
+            # transfer keypoint coordinates to 3D heatmap
+            # processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
+            #                                 axis_range=self.config['axis_range'])
+            # data['heatmap'] = processor(data['keypoint'])
+            # logging.info("Created heatmap")
+
+            self.update_link_limit(data['keypoint'])
+            logging.info("Changed link_limit")
+            writer(data, os.path.join(ROOT, 'data', file_name + '.p'))
+        return os.path.join('data', '*.p')
+
+    def update_link_limit(self, data):
+        """
+        Load keypoint data and calculate the link limit based on linked joints from self.config['link_limit']
+        """
+        for idx, link_limit in enumerate(self.config['link_limit']):
+            link, limit = link_limit
+            joint1 = data[:, link[0] - 1, :]
+            joint2 = data[:, link[1] - 1, :]
+            length = np.linalg.norm(np.nan_to_num(joint2 - joint1, nan=np.inf), axis=1)
+            length = np.where(length > 1e6, np.nan, length)
+            max_length = np.nanmax(length).item()
+            min_length = np.nanmin(length).item()
+            if limit is None:
+                self.config['link_limit'][idx][-1] = [min_length, max_length]
+
+            else:
+                self.config['link_limit'][idx][-1] = [min([min_length, self.config['link_limit'][idx][-1][0]]),
+                                                      max([max_length, self.config['link_limit'][idx][-1][1]])]
+
+        return
+
+
+    def locate_file_info(self):
+        """
+            Find the mat recording file, keypoint matlab recording file for each sample
+        """
+        self.sample = []
+        for date_path in glob.glob(os.path.join(self.db_dir, "*")):
+            date_folder = os.path.basename(date_path)
+            if date_folder in self.date_folder_list or self.date_folder_list is None:
+                mat_info = reader(os.path.join(date_path, 'mat_info.yml'))
+                self.config.update(mat_info)
+                for individual_path in glob.glob(os.path.join(date_path, "*")):
+                    if os.path.isfile(individual_path): continue
+                    individual_folder = os.path.basename(individual_path)
+                    if individual_folder in self.individual_list or self.individual_list is None:
+
+                        info = reader(os.path.join(individual_path, 'info.yml'))
+                        info['date_folder'] = date_folder
+                        info['individual'] = individual_folder
+                        info['marker_set_path'] = os.path.join(individual_path, 'keypoint_recording',
+                                                               'marker set list.csv')
+
+                        mat_recording_files = glob.glob(os.path.join(individual_path, 'mat_recording', '*.csv'))
+                        keypoint_recording_files = glob.glob(
+                            os.path.join(individual_path, 'keypoint_recording', '*.mat'))
+                        mat_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
+                                         mat_recording_files]
+                        keypoint_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
+                                              keypoint_recording_files]
+
+                        set_name = set(mat_recording).intersection(set(keypoint_recording))
+                        for one_set in list(set_name):
+                            info['set'] = one_set
+                            info['mat_recording'] = os.path.join(individual_path, 'mat_recording', one_set + '.csv')
+                            info['keypoint_recording'] = os.path.join(individual_path, 'keypoint_recording',
+                                                                      one_set + '.mat')
+                            self.sample.append(info.copy())
+        return
+
+    def find_mat_data(self, sample_info, file_name):
+        """
+        In each sample, load the mat corner coordinates.
+        """
+
+        processor = ReadMat(sample_info['mat_recording'],
+                            loc_ele_map=self.config['location_ele_map'],
+                            pressure_ele_map=self.config['pressure_ele_map'],
+                            ui_grid=self.config['ui_grid'])
+        sensor_data = processor.extract_sensor_data()
+        export_path = os.path.join(ROOT, 'data', 'sensor', file_name)
+        processor.save_data(sensor_data, export_path)
+        self.df_file['sensor'] = export_path
+
+        pressure_data = processor.extract_pressure_data()
+
+        export_path = os.path.join(ROOT, 'data', 'pressure_map', file_name)
+        processor.save_data(pressure_data, export_path)
+        self.df_file['pressure_map'] = export_path
+        return
+
+    def find_keypoint_data(self, sample_info, file_name):
+        data_processor = ReadKeypoint(sample_info['keypoint_recording'],
+                                      joints=self.joints,
+                                      marker_set_path=sample_info['marker_set_path'],
+                                      merge_point_label=self.config['merge_point'],
+                                      axis_range=self.config['axis_range'])
+        centre = data_processor.mat_centre()
+        theta = data_processor.rotated_angle()
+        data = data_processor.skeleton_data()
+        data = data_processor.axis_transform(data, centre, theta)
+        data = data_processor.normalise(data)
+        # data = data_processor.cut_data(data, percentage=0.5)
+
+        export_path = os.path.join(ROOT, 'data', 'keypoint', file_name)
+        data_processor.save_data(data, export_path)
+
+        self.df_file['keypoint'] = export_path
+        return
+
+    def augment_data(self):
+
+        # TODO
+        return
 
 
 class ReadMat():
@@ -513,6 +661,71 @@ def reformat_file(df):
         print(' This file contains keypoint data')
         return reformat_keypoint(df)
 
+def reformat_pressure_map(df):
+    """
+    Find the data structure in the df. The index should be time
+    reshape the df to array (time_frame, row, col)
+    """
+    data_structure = {
+        'pressure_map': (
+            len(set(col_name.split('_')[0]
+                    for col_name in df.columns)),
+            len(set(col_name.split('_')[1]
+                    for col_name in df.columns))
+        )
+    }
+
+    data = {}
+    for data_type in data_structure:
+        data[data_type] = np.zeros((len(df),) + data_structure[data_type])
+        for iy, ix in np.ndindex(data_structure[data_type]):
+            data[data_type][:, iy, ix] = df['row%d_col%d_%s' % (iy, ix, data_type)]
+    # The shape here is (time_frame, row, col)
+    return data
+
+
+def reformat_sensor(df):
+    """
+    Find the data structure in the df. The index should be time
+    reshape the df to array (time_frame, row, col)
+    """
+    data_structure = {
+        data_type: (
+            len(set(col_name.split('_')[0]
+                    for col_name in df.columns
+                    if data_type in col_name)),
+            len(set(col_name.split('_')[1]
+                    for col_name in df.columns
+                    if data_type in col_name))
+        ) for data_type in set(col_name.split('_', 2)[-1]
+                               for col_name in df.columns)
+    }
+
+    data = {}
+    for data_type in data_structure:
+        data[data_type] = np.zeros((len(df),) + data_structure[data_type])
+        for iy, ix in np.ndindex(data_structure[data_type]):
+            data[data_type][:, iy, ix] = df['row%d_col%d_%s' % (iy, ix, data_type)]
+    # The shape here is (time_frame, row, col)
+    return data
+
+
+def reformat_keypoint(df):
+    """
+    change the keypoint dataframe to numpy array (time frames, joints, xyz)
+    """
+    num_joint = int(len(df.columns) / 3)
+    data = {'keypoint': np.empty((num_joint, len(df), 3))}
+    for idx in range(1, num_joint + 1):
+        joint_df = df.filter(regex='^' + str(idx) + ' ')
+        df = df.drop(joint_df.columns, axis=1)
+        joint_data = np.hstack([joint_df.filter(regex=axis + '$').to_numpy() for axis in ['x', 'y', 'z']])
+        data['keypoint'][idx - 1, :, :] = joint_data
+        # The shape here is (joints, time frames, xyz)
+    data['keypoint'] = np.swapaxes(data['keypoint'], 0, 1)
+    # The shape here is (time frames, joints, xyz)
+    return data
+
 class read_csv():
 
     def __init__(self):
@@ -662,7 +875,7 @@ class heatmap_to_keypoint():
             *[np.linspace(0., 1., int(heatmap_shape[i]))
               for i in range(3)]
         )
-        heatmap = tf.reshape(heatmap, (*heatmap.shape[:-3], *heatmap_shape))
+        heatmap = np.reshape(heatmap, (*heatmap.shape[:-3], *heatmap_shape))
 
         eps = 1e-6
         expected_xyz = [

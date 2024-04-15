@@ -4,8 +4,10 @@ import os
 from src.exception import CustomException
 from src.logger import logging
 import sys
-from src.components.data_ingestion import DataProcessor
-from src.utils import ROOT
+from src.components.data_transformation import DataProcessor
+from src.components.data_ingestion import DataLoader
+from src.utils import ROOT, none_or_str, reader
+
 def cli():
     """
     Sort out parameters here
@@ -24,7 +26,9 @@ def cli():
 
 
     args = parser.parse_args().__dict__
-    process_raw_data: bool = args["data_config_path"] is not None
+
+
+    process_raw_data: bool = none_or_str(args["data_config_path"]) is not None
     data_config_path: str = args.pop("data_config_path")
     raw_data_path: str = args.pop("raw_data_path")
     project_id: str = args.pop("project_id")
@@ -69,8 +73,10 @@ def cli():
     else:
         data_path: str = args.pop("data_path")
         data_path = download_if_not_exist(path=data_path)
-        logging.info("Clean data path located: {data_path}", data_path)
+        logging.info(f"Clean data path located: {data_path}")
 
+        data_loader = DataLoader(data_path)
+        data = data_loader()
     try:
         # TODO
         logging.info("Finished training pipeline")

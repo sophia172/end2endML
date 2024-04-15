@@ -4,4 +4,5 @@ numpy
 scipy
 pyyaml
 scikit-learn
+xgboost
 #-e .

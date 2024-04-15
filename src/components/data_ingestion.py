@@ -1,191 +1,252 @@
-
 from src.exception import CustomException
 from src.logger import logging
 import yaml
 import glob
 from src.components.data_transformation import *
 from dataclasses import dataclass
-from src.utils import ROOT, save_pickle, WriteYAML
+from src.utils import ROOT, writer, reader
+from src.components.model_trainer import BaselineSearch
+import pandas as pd
+
+JOINTS = ["lefthip",
+          "leftknee",
+          "leftfoot",
+          "righthip",
+          "rightknee",
+          "rightfoot",
+          "leftshoulder",
+          "leftelbow",
+          "leftwrist",
+          "rightshoulder",
+          "rightelbow",
+          "rightwrist",
+          "righttoe",
+          "lefttoe",
+          "hips",
+          "neck"]
+XYZ = ['x', 'y', 'z']
 
 
-class DataProcessor:
+class DataLoader():
     """
-        A class for loading data from a directory of mat and keypoint files.
+    Designed for PPIT project
     """
 
-    def __init__(self, config_path=None, **kwargs):
+    def __init__(self, data_path):
+        self.data: pd.DataFrame = reader(data_path)
+        logging.info(f"Data Preview \n {self.data.head()}" )
+    def __call__(self, *args, **kwargs):
+        try:
+            inputs, outputs = self.load_train_file(self.data)
+            logging.info(f"generate X and y with data shape of {inputs.shape}, {outputs.shape}")
+            return inputs, outputs
+        except Exception as e:
+            raise CustomException(e, sys)
 
-        self.__dict__ = kwargs
-        self.export_dir = None
-        self.sample = None
-        self.df_file = {}
-        self.sensor = []
-        self.pressure_map = []
-        self.keypoint = []
-        self.load_config(config_path)
-        self.locate_file_info()
-        return
-
-    def __call__(self, save_mode='pickle'):
+    def reformat_pressure_map(self, df):
         """
-            Load data from mat and keypoint files and save it as pickle files.
+        Find the data structure in the df. The index should be time
+        reshape the df to array (time_frame, row, col)
         """
+        data_structure = {
+            'pressure_map': (
+                len(set(col_name.split('_')[0]
+                        for col_name in df.columns)),
+                len(set(col_name.split('_')[1]
+                        for col_name in df.columns))
+            )
+        }
 
-        for sample_info in self.sample:
-            logging.info("start processing file ", sample_info)
-            file_name = '_'.join([sample_info['date_folder'], sample_info['individual'], sample_info['set']])
+        data = {}
+        for data_type in data_structure:
+            data[data_type] = np.zeros((len(df),) + data_structure[data_type])
+            for iy, ix in np.ndindex(data_structure[data_type]):
+                data[data_type][:, iy, ix] = df['row%d_col%d_%s' % (iy, ix, data_type)]
+        # The shape here is (time_frame, row, col)
+        return data
 
-            self.find_mat_data(sample_info, file_name + '.csv')
-            logging.info("found mat data in " + file_name + 'csv')
-
-            self.find_keypoint_data(sample_info, file_name + '.csv')
-            logging.info("found keypoint data in " + file_name + 'csv')
-
-            data_aligner = AlignData(self.df_file)
-            data = data_aligner(frequency=self.frequency)
-            logging.info("Aligned data in sensor and keypoint")
-
-            # transfer keypoint coordinates to 3D heatmap
-            # processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
-            #                                 axis_range=self.config['axis_range'])
-            # data['heatmap'] = processor(data['keypoint'])
-            # logging.info("Created heatmap")
-
-            self.update_link_limit(data['keypoint'])
-            logging.info("Changed link_limit")
-            writer(data, os.path.join(ROOT, 'data', file_name + '.p'))
-        return os.path.join('data', '*.p')
-
-    def update_link_limit(self, data):
+    def reformat_sensor(self, df):
         """
-        Load keypoint data and calculate the link limit based on linked joints from self.config['link_limit']
+        Find the data structure in the df. The index should be time
+        reshape the df to array (time_frame, row, col)
         """
-        for idx, link_limit in enumerate(self.config['link_limit']):
-            link, limit = link_limit
-            joint1 = data[:, link[0] - 1, :]
-            joint2 = data[:, link[1] - 1, :]
-            length = np.linalg.norm(np.nan_to_num(joint2 - joint1, nan=np.inf), axis=1)
-            length = np.where(length > 1e6, np.nan, length)
-            max_length = np.nanmax(length).item()
-            min_length = np.nanmin(length).item()
-            if limit is None:
-                self.config['link_limit'][idx][-1] = [min_length, max_length]
+        data_structure = {
+            data_type: (
+                len(set(col_name.split('_')[0]
+                        for col_name in df.columns
+                        if data_type in col_name)),
+                len(set(col_name.split('_')[1]
+                        for col_name in df.columns
+                        if data_type in col_name))
+            ) for data_type in set(col_name.split('_', 2)[-1]
+                                   for col_name in df.columns)
+        }
 
-            else:
-                self.config['link_limit'][idx][-1] = [min([min_length, self.config['link_limit'][idx][-1][0]]),
-                                                      max([max_length, self.config['link_limit'][idx][-1][1]])]
+        data = {}
+        for data_type in data_structure:
+            data[data_type] = np.zeros((len(df),) + data_structure[data_type])
+            for iy, ix in np.ndindex(data_structure[data_type]):
+                data[data_type][:, iy, ix] = df['row%d_col%d_%s' % (iy, ix, data_type)]
+        # The shape here is (time_frame, row, col)
+        return data
 
-        return
-
-    def load_config(self, config_path):
+    def reformat_keypoint(self, df):
         """
-        Load configuration from config file:
-        - db_dir
-        - date_folder_list: include all if it's empty.
-        - individual_list: include all if it's empty.
-        - joints
-        - frequency
-        - add_noise: False or ratio float
-        - flip: False or axis int
-        - export_dir: The folder where configuration file sits
+        change the keypoint dataframe to numpy array (time frames, joints, xyz)
         """
+        num_joint = int(len(df.columns) / 3)
+        data = {'keypoint': np.empty((num_joint, len(df), 3))}
+        for idx in range(1, num_joint + 1):
+            joint_df = df.filter(regex='^' + str(idx) + ' ')
+            df = df.drop(joint_df.columns, axis=1)
+            joint_data = np.hstack([joint_df.filter(regex=axis + '$').to_numpy() for axis in ['x', 'y', 'z']])
+            data['keypoint'][idx - 1, :, :] = joint_data
+            # The shape here is (joints, time frames, xyz)
+        data['keypoint'] = np.swapaxes(data['keypoint'], 0, 1)
+        # The shape here is (time frames, joints, xyz)
+        return data
 
-        # Open the YAML file
-        with open(config_path, 'r') as file:
-            # Load the YAML data
-            self.config = yaml.load(file, Loader=yaml.FullLoader)
-
-        for key, value in self.config.items():
-            # Assign configuration to self variable
-            setattr(self, key, value)
-
-        # # Define the raw data is under the same folder
-        self.db_dir = os.path.join(ROOT, "raw_data")
-
-        return
-
-    def locate_file_info(self):
+    def load_train_file(self,
+                        file: str,
+                        input_shape=(10, 13, 24),
+                        output_shape=(16, 3)):
         """
-            Find the mat recording file, keypoint matlab recording file for each sample
-        """
-        self.sample = []
-        for date_path in glob.glob(os.path.join(self.db_dir, "*")):
-            date_folder = os.path.basename(date_path)
-            if date_folder in self.date_folder_list or self.date_folder_list is None:
-                with open(os.path.join(date_path, 'mat_info.yml'), 'r') as file:
-                    mat_info = yaml.load(file, Loader=yaml.FullLoader)
-                    self.config.update(mat_info)
-                for individual_path in glob.glob(os.path.join(date_path, "*")):
-                    if os.path.isfile(individual_path): continue
-                    individual_folder = os.path.basename(individual_path)
-                    if individual_folder in self.individual_list or self.individual_list is None:
+        Open the tabular data file and process data to the input and output format
 
-                        with open(os.path.join(individual_path, 'info.yml'), 'r') as file:
-                            info = yaml.load(file, Loader=yaml.FullLoader)
-                        info['date_folder'] = date_folder
-                        info['individual'] = individual_folder
-                        info['marker_set_path'] = os.path.join(individual_path, 'keypoint_recording',
-                                                               'marker set list.csv')
+        Parameters
+        ----------
+        file: str
+            The csv data file saved in Google Cloud Storage.
 
-                        mat_recording_files = glob.glob(os.path.join(individual_path, 'mat_recording', '*.csv'))
-                        keypoint_recording_files = glob.glob(
-                            os.path.join(individual_path, 'keypoint_recording', '*.mat'))
-                        mat_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
-                                         mat_recording_files]
-                        keypoint_recording = [os.path.basename(path).split('.')[0].replace(" ", "_").lower() for path in
-                                              keypoint_recording_files]
+        input_shape: Tuple
+            The shape of input for training model
 
-                        set_name = set(mat_recording).intersection(set(keypoint_recording))
-                        for one_set in list(set_name):
-                            info['set'] = one_set
-                            info['mat_recording'] = os.path.join(individual_path, 'mat_recording', one_set + '.csv')
-                            info['keypoint_recording'] = os.path.join(individual_path, 'keypoint_recording',
-                                                                      one_set + '.mat')
-                            self.sample.append(info.copy())
-        return
+        output_shape: Tuple
+            The shape of output for training model
 
-    def find_mat_data(self, sample_info, file_name):
-        """
-        In each sample, load the mat corner coordinates.
+        Returns
+        -------
+        input: A NumPy array containing the full input data
+
+        output: A NumPy array containing the full output data
         """
 
-        processor = ReadMat(sample_info['mat_recording'],
-                            loc_ele_map=self.config['location_ele_map'],
-                            pressure_ele_map=self.config['pressure_ele_map'],
-                            ui_grid=self.config['ui_grid'])
-        sensor_data = processor.extract_sensor_data()
-        export_path = os.path.join(ROOT, 'data', 'sensor', file_name)
-        processor.save_data(sensor_data, export_path)
-        self.df_file['sensor'] = export_path
+        keypoint_col_names = [col for col in self.data.columns if 'JointAngle' in col]
+        pressure_col_names = [col for col in self.data.columns if 'pressure' in col]
+        location_col_names = [col for col in self.data.columns if 'location' in col]
+        keypoint_data = self.keypoint_df_to_array(self.data[keypoint_col_names])
+        logging.info(f"Transformed keypoint data to array")
+        pressure_data = self.sensor_df_to_array(self.data[pressure_col_names])
+        logging.info(f"Transformed pressure data to array")
+        location_data = self.sensor_df_to_array(self.data[location_col_names])
+        logging.info(f"Transformed sensor data to array")
+        num_sample = len(self.data)
+        del self.data
 
-        pressure_data = processor.extract_pressure_data()
+        # reshape sensor data
+        sensor_data = []
+        for i in range(num_sample):
+            pressure = pressure_data[i]
+            location = location_data[i]
+            sensor_data.append(self.restack_electrode_data(pressure, location))
 
-        export_path = os.path.join(ROOT, 'data', 'pressure_map', file_name)
-        processor.save_data(pressure_data, export_path)
-        self.df_file['pressure_map'] = export_path
-        return
+        logging.info(f"Combined pressure sensor data and location sensor data")
+        sensor_data = np.array(sensor_data)
+        del pressure_data, location_data
 
-    def find_keypoint_data(self, sample_info, file_name):
-        data_processor = ReadKeypoint(sample_info['keypoint_recording'],
-                                      joints=self.joints,
-                                      marker_set_path=sample_info['marker_set_path'],
-                                      merge_point_label=self.config['merge_point'],
-                                      axis_range=self.config['axis_range'])
-        centre = data_processor.mat_centre()
-        theta = data_processor.rotated_angle()
-        data = data_processor.skeleton_data()
-        data = data_processor.axis_transform(data, centre, theta)
-        data = data_processor.normalise(data)
-        # data = data_processor.cut_data(data, percentage=0.5)
+        # layout input data
+        input_data = []
+        for i in range(num_sample - input_shape[0] + 1):
+            input_data.append(sensor_data[i: i + input_shape[0]])
+        input_data = np.array(input_data)
 
-        export_path = os.path.join(ROOT, 'data', 'keypoint', file_name)
-        data_processor.save_data(data, export_path)
+        # layout output data
+        output_data = keypoint_data[input_shape[0] - 1:]
 
-        self.df_file['keypoint'] = export_path
-        return
+        return input_data, output_data
 
-    def augment_data(self):
+    def restack_electrode_data(self, pressure, location):
+        frame_data = np.zeros((13, 24))
+        for i in range(frame_data.shape[0]):
+            for j in range(frame_data.shape[1]):
+                # i.   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+                # loc  0,  , 1,  , 2,  , 3,  , 4,  ,  5,   ,  6
+                # pres. , 0,  , 1,  , 2,  , 3,  , 4,   ,  5,
 
-        # TODO
-        return
+                # j.   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, ..., 22, 23
+                # loc  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, ..., 22, 23
+                # pres.0, 0, 1, 1, 2, 2, 3, 3, 4, 4,  5,  5,  6,      11, 11
+                source_i = i // 2
+                source_j = j
+                source_data = location
+                if i % 2 != 0:  # pressure
+                    source_data = pressure
+                    source_j = j // 2
+                frame_data[i, j] = source_data[source_i, source_j]
+        return frame_data
 
+    def sensor_df_to_array(self, df: pd.DataFrame) -> np.ndarray:
+        """
+        Converts the dataframe to numpy array
+
+        For pressure and location, convert by row and col
+        Parameters
+        ----------
+        df: pd.DataFrame
+            The dataframe to convert
+
+        Returns
+        -------
+        A NumPy array
+        """
+
+        num_sample = len(df)
+        num_col = max([int(col_name.split('_')[-1]) for col_name in df.columns])
+        num_row = max([int(col_name.split('_')[-2]) for col_name in df.columns])
+        input_shape = (num_sample, num_row + 1, num_col + 1)
+
+        init_array = np.zeros(input_shape)
+
+        def fill_num_to_array(col: pd.Series):
+            _, row_name, col_name = col.name.split('_')
+            init_array[:, int(row_name), int(col_name)] = col.values
+            return
+
+        df.apply(lambda col: fill_num_to_array(col), axis=0)
+
+        return init_array
+
+    def keypoint_df_to_array(self, df: pd.DataFrame) -> np.ndarray:
+        """
+        Converts the dataframe to numpy array
+
+        For keypoint, convert by x, y, z coordinates
+        Parameters
+        ----------
+        df: pd.DataFrame
+            The dataframe to convert
+
+        Returns
+        -------
+        A NumPy array
+        """
+
+        num_sample = len(df)
+        num_col = len(XYZ)
+        num_row = len(JOINTS)
+        output_shape = (num_sample, num_row, num_col)
+
+        init_array = np.zeros(output_shape)
+
+        def fill_num_to_array(col: pd.Series):
+            _, joint_name, xyz = col.name.split('_')
+            init_array[:, JOINTS.index(joint_name), XYZ.index(xyz)] = col.values
+            return
+
+        df.apply(lambda col: fill_num_to_array(col), axis=0)
+
+        return init_array
+
+
+if __name__ == "__main__":
+    pass

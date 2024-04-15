@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils import reader, ROOT, AttrDict
+from utils import reader, ROOT, AttrDict, load_config
 import os
 import sys
 from src.exception import CustomException
@@ -221,18 +221,13 @@ class customLoss():
 class CNN(tf.keras.Model):
     def __init__(self, configuration_path):
         super().__init__()
-        self.model_dir = None
         self.model = None
         self.config = None
-        self.config_filename = os.path.basename(configuration_path).split(".")[0]
-        self.load_config(os.path.join(ROOT, *os.path.split(configuration_path)))
+        self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
+        self.model_dir = None
         return
 
-    def load_config(self, configuration_path):
-        self.config = AttrDict.from_nested_dicts(reader(configuration_path))
-        self.model_dir = os.path.join(ROOT, "model", self.config_filename)
-        os.makedirs(self.model_dir, exist_ok=True)
-        logging.info(f"Creating model folder {self.config_filename}")
+
 
     def build(self, **kwargs):
         try:
