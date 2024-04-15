@@ -6,6 +6,7 @@ __pycache__/
 # Data
 raw_data/
 data/
+config/
 
 # C extensions
 *.so

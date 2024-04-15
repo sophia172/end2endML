@@ -2,6 +2,7 @@ from end2endML.src.exception import CustomException
 from end2endML.src.logger import logging
 from end2endML.src.utils import reader
 import pandas as pd
+import numpy as np
 
 JOINTS = ["lefthip",
           "leftknee",
