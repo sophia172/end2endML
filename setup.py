@@ -16,7 +16,7 @@ def get_requirements(file_path: str) -> list:
     return requirements
 
 
-def read_version(fname="src/version.py"):
+def read_version(fname="end2endML/src/version.py"):
     exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
     return locals()["__version__"]
 
