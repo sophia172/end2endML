@@ -27,8 +27,8 @@ def _root():
     logging.info(f"Cannot locate root file.")
     raise CustomException(Exception, sys)
 
-
-ROOT = _root()
+ROOT = os.getcwd()
+# ROOT = _root()
 
 
 @dataclass
