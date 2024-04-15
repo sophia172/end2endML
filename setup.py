@@ -25,7 +25,7 @@ requirements = []
 
 
 setup(
-    name="ppit",
+    name="end2endML",
     version=read_version(),
     author="Ying Liu",
     author_email="sophia.j.liu@gmail.com",
@@ -39,7 +39,7 @@ setup(
     # ],
     install_requires=get_requirements("requirements.txt"),
     entry_points={
-            "console_scripts": ["ppit=ppit.src.workflow:cli"],
+            "console_scripts": ["ppit=end2endML.src.workflow:cli"],
         },
     description="End to End Machine Learning Project template",
     long_description=open("README.md", encoding="utf-8").read(),
