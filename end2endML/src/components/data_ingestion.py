@@ -1,11 +1,6 @@
-from src.exception import CustomException
-from src.logger import logging
-import yaml
-import glob
-from src.components.data_transformation import *
-from dataclasses import dataclass
-from src.utils import ROOT, writer, reader
-from src.components.model_trainer import BaselineSearch
+from end2endML.src.exception import CustomException
+from end2endML.src.logger import logging
+from end2endML.src.utils import reader
 import pandas as pd
 
 JOINTS = ["lefthip",

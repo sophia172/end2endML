@@ -1,11 +1,10 @@
-import numpy as np
 import sys
 import os
 import yaml
 import pickle
 from typing import Callable
-from src.exception import CustomException
-from src.logger import logging
+from end2endML.src.exception import CustomException
+from end2endML.src.logger import logging
 from dataclasses import dataclass
 from sklearn.metrics import r2_score
 import pandas as pd

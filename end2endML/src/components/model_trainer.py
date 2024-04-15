@@ -1,13 +1,10 @@
 import sys
-from src.exception import CustomException
-from src.logger import logging
-from src.utils import ROOT, writer, evaluate_models, load_config, join_path
+from end2endML.src.exception import CustomException
+from end2endML.src.logger import logging
+from end2endML.src.utils import ROOT, writer, evaluate_models
 import os
-from dataclasses import dataclass
 from sklearn.ensemble import (
-                                AdaBoostRegressor,
-                                GradientBoostingRegressor,
-                                RandomForestRegressor,
+    RandomForestRegressor,
                                 )
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
@@ -73,7 +70,7 @@ class BaselineSearch:
 
 
 if __name__=="__main__":
-    from src.components.data_ingestion import DataLoader
+    from end2endML.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
 
     data_loader = DataLoader("../../data/vertexAI_PPIT_data.csv")

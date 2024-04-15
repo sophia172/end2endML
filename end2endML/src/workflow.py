@@ -1,12 +1,13 @@
 import argparse
 import os
 
-from src.exception import CustomException
-from src.logger import logging
+from end2endML.src.exception import CustomException
+from end2endML.src.logger import logging
 import sys
-from src.components.data_transformation import DataProcessor
-from src.components.data_ingestion import DataLoader
-from src.utils import ROOT, none_or_str, reader
+from end2endML.src.components.data_transformation import DataProcessor
+from end2endML.src.components.data_ingestion import DataLoader
+from end2endML.src.utils import ROOT, none_or_str
+
 
 def cli():
     """
