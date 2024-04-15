@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 from dataclasses import dataclass
-from end2endML.src.utils import ROOT, writer
+from end2endML.src.utils import writer
 import glob
 @dataclass
 # class DataTransformationConfig:
@@ -184,13 +184,13 @@ class DataProcessor:
                             pressure_ele_map=self.config['pressure_ele_map'],
                             ui_grid=self.config['ui_grid'])
         sensor_data = processor.extract_sensor_data()
-        export_path = os.path.join(ROOT, 'data', 'sensor', file_name)
+        export_path = os.path.join('data', 'sensor', file_name)
         processor.save_data(sensor_data, export_path)
         self.df_file['sensor'] = export_path
 
         pressure_data = processor.extract_pressure_data()
 
-        export_path = os.path.join(ROOT, 'data', 'pressure_map', file_name)
+        export_path = os.path.join('data', 'pressure_map', file_name)
         processor.save_data(pressure_data, export_path)
         self.df_file['pressure_map'] = export_path
         return
@@ -208,7 +208,7 @@ class DataProcessor:
         data = data_processor.normalise(data)
         # data = data_processor.cut_data(data, percentage=0.5)
 
-        export_path = os.path.join(ROOT, 'data', 'keypoint', file_name)
+        export_path = os.path.join('data', 'keypoint', file_name)
         data_processor.save_data(data, export_path)
 
         self.df_file['keypoint'] = export_path

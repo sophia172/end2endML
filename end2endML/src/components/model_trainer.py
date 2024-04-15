@@ -1,7 +1,7 @@
 import sys
 from end2endML.src.exception import CustomException
 from end2endML.src.logger import logging
-from end2endML.src.utils import ROOT, writer, evaluate_models
+from end2endML.src.utils import writer, evaluate_models
 import os
 from sklearn.ensemble import (
     RandomForestRegressor,
@@ -29,7 +29,7 @@ class ModelTrainer:
 
 class BaselineSearch:
     def __init__(self):
-        self.save_path = os.path.join(ROOT, "model", "baseline")
+        self.save_path = os.path.join("model", "baseline")
         os.makedirs(self.save_path, exist_ok=True)
 
     def __call__(self, X_train, X_test,  y_train, y_test):

@@ -6,7 +6,7 @@ from end2endML.src.logger import logging
 import sys
 from end2endML.src.components.data_transformation import DataProcessor
 from end2endML.src.components.data_ingestion import DataLoader
-from end2endML.src.utils import ROOT, none_or_str
+from end2endML.src.utils import none_or_str
 
 
 def cli():
@@ -36,7 +36,7 @@ def cli():
 
     def download_if_not_exist(path=""):
         path = os.path.normpath(path)
-        local_path = os.path.join(ROOT, *path.split(os.sep))
+        local_path = os.path.join(*path.split(os.sep))
         remote_path = '/'.join([project_id, *path.split(os.sep)])
         path_exist = os.path.exists(local_path)
         try:
@@ -53,7 +53,7 @@ def cli():
 
     def upload(path="config/data_processor_example.yml"):
         path = os.path.normpath(path)
-        local_path = os.path.join(ROOT, *path.split(os.sep))
+        local_path = os.path.join(*path.split(os.sep))
         remote_path = '/'.join([project_id, *path.split(os.sep)[:-1]])
         try:
             os.system(f"gsutil -m cp -r {local_path} {remote_path}")

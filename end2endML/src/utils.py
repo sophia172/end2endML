@@ -8,27 +8,7 @@ from end2endML.src.logger import logging
 from dataclasses import dataclass
 from sklearn.metrics import r2_score
 import pandas as pd
-def _root():
-    for path in os.walk(os.getcwd()):
-        path = os.path.split(path[0])
-        if path[-1] == "src":
-            src_path = os.path.join(os.getcwd(), *path)
-            return os.path.dirname(src_path)
 
-    dir_path = os.getcwd()
-    for _ in range(3):
-        dir_path = os.path.dirname(dir_path)
-
-        for path in os.walk(dir_path):
-            path = os.path.split(path[0])
-            if path[-1] == "src":
-                src_path = os.path.join(*path)
-                return os.path.dirname(src_path)
-    logging.info(f"Cannot locate root file.")
-    raise CustomException(Exception, sys)
-
-ROOT = os.getcwd()
-# ROOT = _root()
 
 
 @dataclass
@@ -132,7 +112,7 @@ def _check_file_unique_exist(file_path):
 def load_config(configuration_path, folder="model"):
     config_filename = os.path.basename(configuration_path).split(".")[0]
     config = AttrDict.from_nested_dicts(reader(configuration_path))
-    dir = os.path.join(ROOT, folder, config_filename)
+    dir = os.path.join(folder, config_filename)
     os.makedirs(dir, exist_ok=True)
     logging.info(f"Creating {folder} folder {config_filename}")
     return (config_filename, config, dir)
@@ -163,5 +143,4 @@ def evaluate_models(X_train, X_test, y_train, y_test, models={}, metric=r2_score
 
 
 if __name__=="__main__":
-    print(ROOT)
     pass
