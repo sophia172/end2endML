@@ -39,7 +39,7 @@ setup(
     # ],
     install_requires=get_requirements("requirements.txt"),
     entry_points={
-            "console_scripts": ["ppit=end2endML.src.workflow:cli"],
+            "console_scripts": ["ppit=src.workflow:cli"],
         },
     description="End to End Machine Learning Project template",
     long_description=open("README.md", encoding="utf-8").read(),
