@@ -16,7 +16,7 @@ def get_requirements(file_path: str) -> list:
     return requirements
 
 
-def read_version(fname="end2endML/src/version.py"):
+def read_version(fname="ppit/src/version.py"):
     exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
     return locals()["__version__"]
 
@@ -39,7 +39,7 @@ setup(
     # ],
     install_requires=get_requirements("requirements.txt"),
     entry_points={
-            "console_scripts": ["ppit=end2endML.src.workflow:cli"],
+            "console_scripts": ["ppit=ppit.src.workflow:cli"],
         },
     description="End to End Machine Learning Project template",
     long_description=open("README.md", encoding="utf-8").read(),
