@@ -80,5 +80,5 @@ if __name__=="__main__":
     model = CNN("../../config/model_params_example.yml")
     model.build()
     model.compile()
-    model.fit((X_train, y_train), (X_test, y_test))
+    model.fit(X_train, y_train, X_test, y_test)
     model.save()

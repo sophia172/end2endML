@@ -29,10 +29,10 @@ class DataLoader():
     Designed for PPIT project
     """
 
-    def __init__(self, data_path):
+    def __init__(self, data_path, ):
         self.data: pd.DataFrame = reader(data_path)
         logging.info(f"Data Preview \n {self.data.head()}" )
-    def __call__(self, *args, **kwargs):
+    def __call__(self):
         try:
             inputs, outputs = self.load_train_file(self.data)
             logging.info(f"generate X and y with data shape of {inputs.shape}, {outputs.shape}")

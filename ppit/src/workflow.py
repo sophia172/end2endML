@@ -9,7 +9,7 @@ from ppit.src.components.data_ingestion import DataLoader
 from ppit.src.components.model_trainer import BaselineSearch
 from ppit.src.components.models import CNN
 from ppit.src.utils import none_or_str
-from sklearn.model_selection import train_test_split
+
 def cli():
     """
     Sort out parameters here
@@ -18,7 +18,7 @@ def cli():
     parser = argparse.ArgumentParser(description='Process parameters')
     parser.add_argument('--model_parameter', type=str, default='config/model_example.yml',
                         help='parameter file path')
-    parser.add_argument('--data_config_path', type=str, default="config/data_processor_example.yml",
+    parser.add_argument('--data_config_path', type=str, default=None,
                         help='Process file from raw data')
     parser.add_argument('--raw_data_path', type=str, default="raw_data/20230626",
                         help='Process file from raw data')
@@ -32,7 +32,7 @@ def cli():
     args = parser.parse_args().__dict__
 
 
-    process_raw_data: bool = none_or_str(args["data_config_path"]) is not None
+    process_raw_data: bool = args["data_config_path"] is not None
     data_config_path: str = args.pop("data_config_path")
     raw_data_path: str = args.pop("raw_data_path")
     project_id: str = args.pop("project_id")
@@ -83,6 +83,7 @@ def cli():
         data_loader = DataLoader(data_path)
         data = data_loader()
 
+        from sklearn.model_selection import train_test_split
         X_train, X_test, y_train, y_test = train_test_split(*data)
 
     try:

@@ -287,15 +287,33 @@ class CNN(tf.keras.Model):
         except Exception as e:
             raise CustomException(e, sys)
 
+    def data_generator(self, dataset):
+        inputs, outputs = dataset
+        for i in range(0, len(inputs) // self.config.train.batch_size):
+            yield (inputs[i * self.config.train.batch_size:(i + 1) * self.config.train.batch_size],
+                   outputs[i * self.config.train.batch_size:(i + 1) * self.config.train.batch_size])
+
     def fit(self, X_train, X_test, y_train, y_test):
         try:
             saved_model_path = os.path.join(self.model_dir, "saved_model")
             if self.config.train.retrain and os.path.exists(saved_model_path):
                 saved_model = tf.keras.models.load_model(saved_model_path)
                 self.model.set_weights(saved_model.get_weights())
+                logging.info(f"Load saved weights to initial the fit")
+
+            train_dataset = tf.data.Dataset.from_generator(
+                lambda: self.data_generator((X_train, y_train)),
+                output_types=(tf.float32, tf.float32)).shuffle(
+                                                            buffer_size=self.config.train.shuffle,
+                                                            reshuffle_each_iteration=True).repeat(
+                                                            self.config.train.shuffle)
+            test_dataset = tf.data.Dataset.from_generator(
+                lambda: self.data_generator((X_test, y_test)), output_types=(tf.float32, tf.float32))
+            logging.info(f"Turn dataset array to TensorFlow dataset")
+
             self.model.fit(
-                X_train, y_train,
-                validation_data=(X_test, y_test),
+                train_dataset,
+                validation_data=test_dataset,
                 epochs=self.config.train.epochs,
                 batch_size=self.config.train.batch_size,
                 callbacks=self.callbacks(),
