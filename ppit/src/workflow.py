@@ -7,6 +7,7 @@ import sys
 from ppit.src.components.data_transformation import DataProcessor
 from ppit.src.components.data_ingestion import DataLoader
 from ppit.src.components.model_trainer import BaselineSearch
+from ppit.src.components.models import CNN
 from ppit.src.utils import none_or_str
 from sklearn.model_selection import train_test_split
 def cli():
@@ -24,7 +25,7 @@ def cli():
     parser.add_argument('--data_path', type=str, default="data/vertexAI_PPIT_data.csv", help='Clean data path')
     parser.add_argument('--project_id', type=str, default="gs://cloud-ai-platform-37c994cb-e090-4da1-ab7d-599262814bd1",
                         help='Clean data dir')
-    parser.add_argument('--baseline_search', type=bool, default=True,
+    parser.add_argument('--baseline_search', type=bool, default=False,
                         help='Looking for baseline model')
 
 
@@ -84,10 +85,7 @@ def cli():
 
         X_train, X_test, y_train, y_test = train_test_split(*data)
 
-        # X_train = torch.asarray(X_train, device="cuda", dtype=torch.float32)
-        # X_test = torch.asarray(X_test, device="cuda", dtype=torch.float32)
-        # y_train = torch.asarray(y_train, device="cuda", dtype=torch.float32)
-        # y_test = torch.asarray(y_test, device="cuda", dtype=torch.float32)
+    try:
         if baseline_search:
             baseline_search = BaselineSearch()
             baseline_search(
@@ -96,8 +94,16 @@ def cli():
                 y_train.reshape(y_train.shape[0], -1),
                 y_test.reshape(y_test.shape[0], -1)
             )
+            logging.info("Finished searching for baseline model")
+    except Exception as e:
+        raise CustomException(e, sys)
+
     try:
-        # TODO
+        model = CNN("config/model_params_example.yml")
+        model.build()
+        model.compile()
+        model.fit((X_train, y_train), (X_test, y_test))
+        model.save()
         logging.info("Finished training pipeline")
     except Exception as e:
         raise CustomException(e, sys)

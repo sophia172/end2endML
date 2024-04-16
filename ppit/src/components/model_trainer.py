@@ -72,15 +72,13 @@ class BaselineSearch:
 if __name__=="__main__":
     from ppit.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
-
+    from ppit.src.components.models import CNN
     data_loader = DataLoader("../../data/vertexAI_PPIT_data.csv")
 
     data = data_loader()
     X_train, X_test, y_train, y_test = train_test_split(*data)
-    baseline_search = BaselineSearch()
-    baseline_search(
-                    X_train.reshape(X_train.shape[0],-1),
-                    X_test.reshape(X_test.shape[0],-1),
-                    y_train.reshape(y_train.shape[0],-1),
-                    y_test.reshape(y_test.shape[0],-1)
-                    )
+    model = CNN("../../config/model_params_example.yml")
+    model.build()
+    model.compile()
+    model.fit((X_train, y_train), (X_test, y_test))
+    model.save()
