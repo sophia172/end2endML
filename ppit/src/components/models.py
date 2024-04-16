@@ -287,15 +287,15 @@ class CNN(tf.keras.Model):
         except Exception as e:
             raise CustomException(e, sys)
 
-    def fit(self, trainset, validset, retrain=False):
+    def fit(self, X_train, X_test, y_train, y_test, retrain=False):
         try:
             saved_model_path = os.path.join(self.model_dir, "saved_model")
             if retrain and os.path.exists(saved_model_path):
                 saved_model = tf.keras.models.load_model(saved_model_path)
                 self.model.set_weights(saved_model.get_weights())
             self.model.fit(
-                trainset,
-                validation_data=validset,
+                X_train, y_train,
+                validation_data=(X_test, y_test),
                 epochs=self.config.train.epochs,
                 batch_size=self.config.train.batch_size,
                 callbacks=self.callbacks(),
