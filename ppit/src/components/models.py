@@ -242,7 +242,7 @@ class CNN(tf.keras.Model):
             x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
             x = tf.keras.activations.tanh(x) * np.pi
 
-            OutputLayer = x
+            OutputLayer = tf.squeeze(tf.squeeze(x))
 
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
@@ -287,10 +287,10 @@ class CNN(tf.keras.Model):
         except Exception as e:
             raise CustomException(e, sys)
 
-    def fit(self, X_train, X_test, y_train, y_test, retrain=False):
+    def fit(self, X_train, X_test, y_train, y_test):
         try:
             saved_model_path = os.path.join(self.model_dir, "saved_model")
-            if retrain and os.path.exists(saved_model_path):
+            if self.config.train.retrain and os.path.exists(saved_model_path):
                 saved_model = tf.keras.models.load_model(saved_model_path)
                 self.model.set_weights(saved_model.get_weights())
             self.model.fit(
