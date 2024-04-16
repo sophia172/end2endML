@@ -37,7 +37,7 @@ class Conv3dBlock:
                                        name=self.name + "_activation")(x)
         x = tf.keras.layers.Dropout(self.dropout,
                                     name=self.name + "_dropout")(x)
-        logging.info(f"Built Conv3D block {self.name}")
+        logging.info(f"Add Conv3D block {self.name}")
         return x
 
 
@@ -72,7 +72,7 @@ class Conv2dBlock:
         x = tf.keras.layers.Dropout(self.dropout,
                                     name=self.name + "_dropout")(x)
 
-        logging.info(f"Built Conv2D block {self.name}")
+        logging.info(f"Add Conv2D block {self.name}")
         return x
 
 
@@ -96,7 +96,7 @@ class FlattenBlock:
         if self.reshape is not None:
             x = tf.keras.layers.Reshape((*self.reshape[1:], self.reshape[0]))(x)
 
-        logging.info(f"Built flatten block {self.name}")
+        logging.info(f"Add flatten block {self.name}")
         return x
 
 
@@ -177,16 +177,16 @@ class early_stopping():
 class Adam():
     def __init__(self,
                  learning_rate=0.0001,
-                 weight_decay=0.03,
+                 decay=0.03,
                  ):
         self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
+        self.decay = decay
 
     def __call__(self):
         logging.info(f"Add Adam optimiser.")
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
-            weight_decay=self.weight_decay
+            decay=self.decay
         )
 
 
