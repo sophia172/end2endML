@@ -35,6 +35,7 @@ def cli():
     data_config_path: str = args.pop("data_config_path")
     raw_data_path: str = args.pop("raw_data_path")
     project_id: str = args.pop("project_id")
+    baseline_search: bool = args.pop("baseline_search")
 
     def download_if_not_exist(path=""):
         path = os.path.normpath(path)
@@ -87,13 +88,14 @@ def cli():
         # X_test = torch.asarray(X_test, device="cuda", dtype=torch.float32)
         # y_train = torch.asarray(y_train, device="cuda", dtype=torch.float32)
         # y_test = torch.asarray(y_test, device="cuda", dtype=torch.float32)
-        baseline_search = BaselineSearch()
-        baseline_search(
-            X_train.reshape(X_train.shape[0], -1),
-            X_test.reshape(X_test.shape[0], -1),
-            y_train.reshape(y_train.shape[0], -1),
-            y_test.reshape(y_test.shape[0], -1)
-        )
+        if baseline_search:
+            baseline_search = BaselineSearch()
+            baseline_search(
+                X_train.reshape(X_train.shape[0], -1),
+                X_test.reshape(X_test.shape[0], -1),
+                y_train.reshape(y_train.shape[0], -1),
+                y_test.reshape(y_test.shape[0], -1)
+            )
     try:
         # TODO
         logging.info("Finished training pipeline")
