@@ -102,7 +102,7 @@ def cli():
         model = CNN("config/model_params_example.yml")
         model.build()
         model.compile()
-        model.fit((X_train, y_train), (X_test, y_test))
+        model.fit(X_train, X_test, y_train, y_test)
         model.save()
         logging.info("Finished training pipeline")
     except Exception as e:
