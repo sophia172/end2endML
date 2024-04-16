@@ -224,7 +224,6 @@ class CNN(tf.keras.Model):
         self.model = None
         self.config = None
         self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
-        self.model_dir = None
         return
 
 
