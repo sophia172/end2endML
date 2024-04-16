@@ -9,7 +9,6 @@ from ppit.src.components.data_ingestion import DataLoader
 from ppit.src.components.model_trainer import BaselineSearch
 from ppit.src.utils import none_or_str
 from sklearn.model_selection import train_test_split
-import torch
 def cli():
     """
     Sort out parameters here
@@ -84,10 +83,10 @@ def cli():
 
         X_train, X_test, y_train, y_test = train_test_split(*data)
 
-        X_train = torch.asarray(X_train, device="cuda", dtype=torch.float32)
-        X_test = torch.asarray(X_test, device="cuda", dtype=torch.float32)
-        y_train = torch.asarray(y_train, device="cuda", dtype=torch.float32)
-        y_test = torch.asarray(y_test, device="cuda", dtype=torch.float32)
+        # X_train = torch.asarray(X_train, device="cuda", dtype=torch.float32)
+        # X_test = torch.asarray(X_test, device="cuda", dtype=torch.float32)
+        # y_train = torch.asarray(y_train, device="cuda", dtype=torch.float32)
+        # y_test = torch.asarray(y_test, device="cuda", dtype=torch.float32)
         baseline_search = BaselineSearch()
         baseline_search(
             X_train.reshape(X_train.shape[0], -1),
