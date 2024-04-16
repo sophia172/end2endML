@@ -32,7 +32,7 @@ def cli():
     args = parser.parse_args().__dict__
 
 
-    process_raw_data: bool = args["data_config_path"] is not None
+    process_raw_data: bool = none_or_str(args["data_config_path"]) is not None
     data_config_path: str = args.pop("data_config_path")
     raw_data_path: str = args.pop("raw_data_path")
     project_id: str = args.pop("project_id")
