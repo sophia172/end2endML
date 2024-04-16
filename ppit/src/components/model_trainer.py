@@ -1,7 +1,7 @@
 import sys
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
-from end2endML.src.utils import writer, evaluate_models
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
+from ppit.src.utils import writer, evaluate_models
 import os
 from sklearn.ensemble import (
     RandomForestRegressor,
@@ -70,7 +70,7 @@ class BaselineSearch:
 
 
 if __name__=="__main__":
-    from end2endML.src.components.data_ingestion import DataLoader
+    from ppit.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
 
     data_loader = DataLoader("../../data/vertexAI_PPIT_data.csv")

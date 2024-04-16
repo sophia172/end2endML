@@ -5,3 +5,4 @@ scipy
 pyyaml
 scikit-learn
 xgboost
+pytorch-gpu

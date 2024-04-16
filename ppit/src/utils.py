@@ -3,8 +3,8 @@ import os
 import yaml
 import pickle
 from typing import Callable
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
 from dataclasses import dataclass
 from sklearn.metrics import r2_score
 import pandas as pd

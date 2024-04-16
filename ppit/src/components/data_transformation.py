@@ -1,13 +1,13 @@
 import sys
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
-from end2endML.src.utils import _check_file_unique_exist, reader, load_config
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
+from ppit.src.utils import _check_file_unique_exist, reader, load_config
 import os
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 from dataclasses import dataclass
-from end2endML.src.utils import writer
+from ppit.src.utils import writer
 import glob
 @dataclass
 # class DataTransformationConfig:

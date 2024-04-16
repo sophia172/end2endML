@@ -1,14 +1,15 @@
 import argparse
 import os
 
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
 import sys
-from end2endML.src.components.data_transformation import DataProcessor
-from end2endML.src.components.data_ingestion import DataLoader
-from end2endML.src.utils import none_or_str
-
-
+from ppit.src.components.data_transformation import DataProcessor
+from ppit.src.components.data_ingestion import DataLoader
+from ppit.src.components.model_trainer import BaselineSearch
+from ppit.src.utils import none_or_str
+from sklearn.model_selection import train_test_split
+import torch
 def cli():
     """
     Sort out parameters here
@@ -24,6 +25,8 @@ def cli():
     parser.add_argument('--data_path', type=str, default="data/vertexAI_PPIT_data.csv", help='Clean data path')
     parser.add_argument('--project_id', type=str, default="gs://cloud-ai-platform-37c994cb-e090-4da1-ab7d-599262814bd1",
                         help='Clean data dir')
+    parser.add_argument('--baseline_search', type=bool, default=True,
+                        help='Looking for baseline model')
 
 
     args = parser.parse_args().__dict__
@@ -78,6 +81,20 @@ def cli():
 
         data_loader = DataLoader(data_path)
         data = data_loader()
+
+        X_train, X_test, y_train, y_test = train_test_split(*data)
+
+        X_train = torch.asarray(X_train, device="cuda", dtype=torch.float32)
+        X_test = torch.asarray(X_test, device="cuda", dtype=torch.float32)
+        y_train = torch.asarray(y_train, device="cuda", dtype=torch.float32)
+        y_test = torch.asarray(y_test, device="cuda", dtype=torch.float32)
+        baseline_search = BaselineSearch()
+        baseline_search(
+            X_train.reshape(X_train.shape[0], -1),
+            X_test.reshape(X_test.shape[0], -1),
+            y_train.reshape(y_train.shape[0], -1),
+            y_test.reshape(y_test.shape[0], -1)
+        )
     try:
         # TODO
         logging.info("Finished training pipeline")

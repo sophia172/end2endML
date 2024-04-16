@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
-from end2endML.src.utils import load_config
+from ppit.src.utils import load_config
 import os
 import sys
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
 
 
 class Conv3dBlock:

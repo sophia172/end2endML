@@ -1,6 +1,6 @@
-from end2endML.src.exception import CustomException
-from end2endML.src.logger import logging
-from end2endML.src.utils import reader
+from ppit.src.exception import CustomException
+from ppit.src.logger import logging
+from ppit.src.utils import reader
 import pandas as pd
 import numpy as np
 

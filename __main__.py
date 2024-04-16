@@ -1,3 +1,3 @@
-from end2endML.src.workflow import cli
+from ppit.src.workflow import cli
 
 cli()
