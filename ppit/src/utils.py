@@ -97,6 +97,8 @@ def join_path(*args):
     return local_path
 
 def none_or_str(value):
+    if value is None:
+        return value
     if value.lower() == 'none':
         return None
     return value

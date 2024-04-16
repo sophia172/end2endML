@@ -237,6 +237,8 @@ class DataLoader():
 
         def fill_num_to_array(col: pd.Series):
             _, joint_name, xyz = col.name.split('_')
+            if joint_name not in JOINTS:
+                return
             init_array[:, JOINTS.index(joint_name), XYZ.index(xyz)] = col.values
             return
 
