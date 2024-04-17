@@ -231,19 +231,78 @@ class CNN(tf.keras.Model):
     def build(self, **kwargs):
         try:
             InputLayer = tf.keras.layers.Input(shape=self.config.train.input.shape)
+            # x = InputLayer
+            # x = tf.expand_dims(x, axis=-1)
+            #
+            # for block in self.config.model:
+            #     for model, params in block.items():
+            #         model = eval(model)
+            #     x = model(**params)(x)
+            #
+            # x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
+            # x = tf.keras.activations.tanh(x) * np.pi
+            #
+            # OutputLayer = tf.squeeze(x)
+            #
+            # self.model = tf.keras.Model(InputLayer, OutputLayer)
+            # self.model.summary(print_fn=logging.info)
+            dropout = 0.3
             x = InputLayer
-            x = tf.expand_dims(x, axis=-1)
+            print(x.shape)
 
-            for block in self.config.model:
-                for model, params in block.items():
-                    model = eval(model)
-                x = model(**params)(x)
+            x = tf.expand_dims(x, axis=-1)
+            print(x.shape)
+
+            x = tf.keras.layers.Conv3D(32, (2, 3, 3), strides=(2, 1, 1), padding='same',
+                                       # kernel_initializer=tf.keras.initializers.Ones(),
+                                       # bias_initializer=tf.keras.initializers.Ones()
+                                       )(x)
+            x = tf.keras.activations.tanh(x)
+            x = tf.keras.layers.Dropout(dropout)(x)
+            print(x.shape)
+
+            # 2nd layers from 32 to 64
+            x = tf.keras.layers.Conv3D(64, (2, 3, 3), strides=(2, 2, 2), padding='same')(x)
+
+            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+            x = tf.keras.activations.tanh(x)
+            x = tf.keras.layers.Dropout(dropout)(x)
+            # x = tf.keras.layers.MaxPooling2D((2,2), padding='same')(x)
+            print(x.shape)
+
+            # 3rd layers from 64 to 128
+            x = tf.keras.layers.Conv3D(128, (2, 3, 4), strides=(2, 1, 2), padding='same')(x)
+            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+            x = tf.keras.activations.tanh(x)
+            x = tf.keras.layers.Dropout(dropout)(x)
+            print(x.shape)
+
+            x = tf.keras.layers.Flatten()(x)
+            x = tf.keras.layers.Dense(12 * 3 * 128)(x)
+            x = tf.keras.activations.tanh(x)
+            x = tf.keras.layers.Dropout(dropout)(x)
+            print(x.shape)
+            x = tf.keras.layers.Reshape((12, 3, 128))(x)
+            print(x.shape)
+
+            # # ######################################################
+            # #
+            # # ##   DECODER
+            # # #
+            # # #######################################################
+
+            x = tf.keras.layers.Conv2D(32, (2, 2), strides=1, padding='same')(x)
+            x = tf.keras.activations.tanh(x)
+            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+            x = tf.keras.layers.Dropout(dropout)(x)
+            print(x.shape)
+
+            # 6th layer from 64 to 2, 2 is the number of joints in keypoints
 
             x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
-            x = tf.keras.activations.tanh(x) * np.pi
 
-            OutputLayer = tf.squeeze(x)
-
+            print(x.shape)
+            OutputLayer = x
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
 
