@@ -278,11 +278,11 @@ class CNN():
             print(x.shape)
 
             x = tf.keras.layers.Flatten()(x)
-            x = tf.keras.layers.Dense(12 * 3 * 128)(x)
+            x = tf.keras.layers.Dense(16 * 3 * 128)(x)
             x = tf.keras.activations.tanh(x)
             x = tf.keras.layers.Dropout(dropout)(x)
             print(x.shape)
-            x = tf.keras.layers.Reshape((12, 3, 128))(x)
+            x = tf.keras.layers.Reshape((16, 3, 128))(x)
             print(x.shape)
 
             # # ######################################################
@@ -302,7 +302,6 @@ class CNN():
             x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
 
             print(x.shape)
-            x = tf.squeeze(x)
             OutputLayer = x
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
