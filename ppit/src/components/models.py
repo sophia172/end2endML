@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from ppit.src.utils import load_config
+from ppit.src.utils import load_config, none_or_str
 import os
 import sys
 from ppit.src.exception import CustomException
@@ -154,11 +154,11 @@ class early_stopping():
                  restore_best_weights=False,
                  ):
         self.monitor = monitor
-        self.min_delta = min_delta
-        self.patience = patience
-        self.verbose = verbose
+        self.min_delta = float(min_delta)
+        self.patience = int(patience)
+        self.verbose = int(verbose)
         self.mode = mode
-        self.baseline = baseline
+        self.baseline = none_or_str(baseline)
         self.restore_best_weights = restore_best_weights
 
     def __call__(self, log_dir):
@@ -242,7 +242,7 @@ class CNN(tf.keras.Model):
             x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
             x = tf.keras.activations.tanh(x) * np.pi
 
-            OutputLayer = tf.squeeze(tf.squeeze(x))
+            OutputLayer = tf.squeeze(x)
 
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
@@ -283,7 +283,9 @@ class CNN(tf.keras.Model):
     def compile(self):
         try:
             logging.info(f"Compiling model with loss {self.config.train.loss}")
-            return self.model.compile(optimizer=self.optimizer(), loss=self.loss())
+            return self.model.compile(optimizer=self.optimizer(),
+                                      loss=self.loss(),
+                                      )
         except Exception as e:
             raise CustomException(e, sys)
 
@@ -310,7 +312,7 @@ class CNN(tf.keras.Model):
             test_dataset = tf.data.Dataset.from_generator(
                 lambda: self.data_generator((X_test, y_test)), output_types=(tf.float32, tf.float32))
             logging.info(f"Turn dataset array to TensorFlow dataset")
-
+            tf.debugging.enable_check_numerics()
             self.model.fit(
                 train_dataset,
                 validation_data=test_dataset,
