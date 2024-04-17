@@ -218,7 +218,7 @@ class customLoss():
         return tf.keras.losses.MSE()
 
 
-class CNN(tf.keras.Model):
+class CNN():
     def __init__(self, configuration_path):
         super().__init__()
         self.model = None
@@ -302,6 +302,7 @@ class CNN(tf.keras.Model):
             x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
 
             print(x.shape)
+            x = tf.squeeze(x)
             OutputLayer = x
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
