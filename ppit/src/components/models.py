@@ -396,7 +396,7 @@ class CNN():
     def save(self):
         try:
             saved_model_path = os.path.join(self.model_dir, "saved_model")
-            self.model.save(saved_model_path)
+            self.model.save(saved_model_path, save_format='h5')
             logging.info(f"Model saved at {saved_model_path}")
         except Exception as e:
             raise CustomException(e, sys)
