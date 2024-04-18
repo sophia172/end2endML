@@ -49,7 +49,7 @@ class Conv2dBlock:
                  padding='same',
                  activation='tanh',
                  dropout=2,
-                 name='conv3d_block'
+                 name='conv2d_block'
                  ):
         self.filters = filters
         self.kernel_size = kernel_size
@@ -75,22 +75,93 @@ class Conv2dBlock:
         logging.info(f"Add Conv2D block {self.name}")
         return x
 
-
-class FlattenBlock:
+class Conv1dBlock:
     def __init__(self,
-                 reshape=(128, 12, 3),
+                 filters=32,
+                 kernel_size=2,
+                 strides=1,
+                 padding='same',
                  activation='tanh',
                  dropout=2,
-                 name='conv3d_block'):
-        self.reshape = reshape
+                 name='conv1d_block'
+                 ):
+        self.filters = filters
+        self.kernel_size = kernel_size
+        self.strides = strides
+        self.padding = padding
         self.name = name
         self.activation = activation
         self.dropout = dropout
 
     def __call__(self, x):
-        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Conv1D(self.filters,
+                                   self.kernel_size,
+                                   strides=self.strides,
+                                   padding=self.padding,
+                                   name=self.name + "_conv1d")(x)
+        x = tf.keras.layers.BatchNormalization(axis=-1,
+                                               name=self.name + "_batchNorm")(x)
+        x = tf.keras.layers.Activation(self.activation,
+                                       name=self.name + "_activation")(x)
+        x = tf.keras.layers.Dropout(self.dropout,
+                                    name=self.name + "_dropout")(x)
+
+        logging.info(f"Add Conv1D block {self.name}")
+        return x
+
+
+class MaxPoolingBlock():
+    def __init__(self,
+                 pool_size=(2, 2, 2),
+                 padding="valid",
+                 name=None,
+                 ):
+        self.pool_size = pool_size
+        self.padding = padding
+        self.name = name
+        self.pool_func = eval(f"tf.keras.layers.MaxPool{len(self.pool_size)}D")
+
+    def __call__(self, x):
+        logging.info(f"Add MaxPool{len(self.pool_size)}D block {self.name}")
+        return self.pool_func(pool_size=self.pool_size,
+                              padding=self.padding,
+                              name=self.name)(x)
+
+
+class Squeeze:
+    def __init__(self, name=None, axis=[1]):
+        self.axis = axis
+        self.name = name
+        return
+
+    def __call__(self, x):
+
+        logging.info(f"Add Squeeze block {self.name}")
+        return tf.squeeze(x, axis=self.axis)
+
+
+class DenseBlock:
+    def __init__(self,
+                 reshape=(128, 12, 3),
+                 activation='tanh',
+                 dropout=2,
+                 flatten=False,
+                 unit=16,
+                 name='conv3d_block'):
+        self.reshape = reshape
+        self.name = name
+        self.activation = activation
+        self.dropout = dropout
+        self.flatten = flatten
+        self.unit = unit
+
+    def __call__(self, x):
+        if self.flatten:
+            x = tf.keras.layers.Flatten()(x)
         if self.reshape is not None:
             x = tf.keras.layers.Dense(np.prod(self.reshape), name=self.name + "_resize")(x)
+        else:
+            x = tf.keras.layers.Dense(self.unit, name=self.name + "_resize")(x)
         x = tf.keras.layers.Activation(self.activation, name=self.name + "_activation")(x)
         x = tf.keras.layers.Dropout(self.dropout, name=self.name + "_dropout")(x)
         if self.reshape is not None:
@@ -226,83 +297,18 @@ class CNN():
         self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
         return
 
-
-
     def build(self, **kwargs):
         try:
             InputLayer = tf.keras.layers.Input(shape=self.config.train.input.shape)
-            # x = InputLayer
-            # x = tf.expand_dims(x, axis=-1)
-            #
-            # for block in self.config.model:
-            #     for model, params in block.items():
-            #         model = eval(model)
-            #     x = model(**params)(x)
-            #
-            # x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
-            # x = tf.keras.activations.tanh(x) * np.pi
-            #
-            # OutputLayer = tf.squeeze(x)
-            #
-            # self.model = tf.keras.Model(InputLayer, OutputLayer)
-            # self.model.summary(print_fn=logging.info)
-            dropout = 0.3
             x = InputLayer
-            print(x.shape)
-
             x = tf.expand_dims(x, axis=-1)
-            print(x.shape)
 
-            x = tf.keras.layers.Conv3D(32, (2, 3, 3), strides=(2, 1, 1), padding='same',
-                                       # kernel_initializer=tf.keras.initializers.Ones(),
-                                       # bias_initializer=tf.keras.initializers.Ones()
-                                       )(x)
-            x = tf.keras.activations.tanh(x)
-            x = tf.keras.layers.Dropout(dropout)(x)
-            print(x.shape)
+            for block in self.config.model:
+                for model, params in block.items():
+                    model = eval(model)
+                    x = model(**params)(x)
+            OutputLayer = x * np.pi
 
-            # 2nd layers from 32 to 64
-            x = tf.keras.layers.Conv3D(64, (2, 3, 3), strides=(2, 2, 2), padding='same')(x)
-
-            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
-            x = tf.keras.activations.tanh(x)
-            x = tf.keras.layers.Dropout(dropout)(x)
-            # x = tf.keras.layers.MaxPooling2D((2,2), padding='same')(x)
-            print(x.shape)
-
-            # 3rd layers from 64 to 128
-            x = tf.keras.layers.Conv3D(128, (2, 3, 4), strides=(2, 1, 2), padding='same')(x)
-            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
-            x = tf.keras.activations.tanh(x)
-            x = tf.keras.layers.Dropout(dropout)(x)
-            print(x.shape)
-
-            x = tf.keras.layers.Flatten()(x)
-            x = tf.keras.layers.Dense(16 * 3 * 128)(x)
-            x = tf.keras.activations.tanh(x)
-            x = tf.keras.layers.Dropout(dropout)(x)
-            print(x.shape)
-            x = tf.keras.layers.Reshape((16, 3, 128))(x)
-            print(x.shape)
-
-            # # ######################################################
-            # #
-            # # ##   DECODER
-            # # #
-            # # #######################################################
-
-            x = tf.keras.layers.Conv2D(32, (2, 2), strides=1, padding='same')(x)
-            x = tf.keras.activations.tanh(x)
-            x = tf.keras.layers.BatchNormalization(axis=-1)(x)
-            x = tf.keras.layers.Dropout(dropout)(x)
-            print(x.shape)
-
-            # 6th layer from 64 to 2, 2 is the number of joints in keypoints
-
-            x = tf.keras.layers.Conv2D(1, (2, 2), strides=1, padding='same')(x)
-
-            print(x.shape)
-            OutputLayer = x
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
 
@@ -365,9 +371,9 @@ class CNN():
             train_dataset = tf.data.Dataset.from_generator(
                 lambda: self.data_generator((X_train, y_train)),
                 output_types=(tf.float32, tf.float32)).shuffle(
-                                                            buffer_size=self.config.train.shuffle,
-                                                            reshuffle_each_iteration=True).repeat(
-                                                            self.config.train.shuffle)
+                buffer_size=self.config.train.shuffle,
+                reshuffle_each_iteration=True).repeat(
+                self.config.train.shuffle)
             test_dataset = tf.data.Dataset.from_generator(
                 lambda: self.data_generator((X_test, y_test)), output_types=(tf.float32, tf.float32))
             logging.info(f"Turn dataset array to TensorFlow dataset")
@@ -394,7 +400,7 @@ class CNN():
 
 
 if __name__ == "__main__":
-    model = CNN("config/model_params_example.yml")
+    model = CNN("../../../config/model_params_example.yml")
     model.build()
-    model.compile()
-    model.save()
+    # model.compile()
+    # model.save()
