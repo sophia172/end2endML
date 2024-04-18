@@ -249,15 +249,18 @@ class Adam():
     def __init__(self,
                  learning_rate=0.0001,
                  decay=0.03,
+                 clipnorm=1
                  ):
         self.learning_rate = learning_rate
         self.decay = decay
+        self.clipnorm = clipnorm
 
     def __call__(self):
         logging.info(f"Add Adam optimiser.")
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
-            decay=self.decay
+            decay=self.decay,
+            clipnorm=self.clipnorm
         )
 
 
