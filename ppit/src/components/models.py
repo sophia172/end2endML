@@ -5,7 +5,7 @@ import os
 import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
-
+from keras.constraints import max_norm
 
 class Conv3dBlock:
     def __init__(self,
@@ -62,6 +62,7 @@ class Conv2dBlock:
     def __call__(self, x):
         x = tf.keras.layers.Conv2D(self.filters,
                                    self.kernel_size,
+                                   kernel_constraint=max_norm(3),
                                    strides=self.strides,
                                    padding=self.padding,
                                    name=self.name + "_conv2d")(x)
@@ -99,6 +100,7 @@ class Conv1dBlock:
                                    self.kernel_size,
                                    strides=self.strides,
                                    padding=self.padding,
+                                   kernel_constraint=max_norm(3),
                                    name=self.name + "_conv1d")(x)
         x = tf.keras.layers.BatchNormalization(axis=-1,
                                                name=self.name + "_batchNorm")(x)
@@ -159,7 +161,9 @@ class DenseBlock:
         if self.flatten:
             x = tf.keras.layers.Flatten()(x)
         if self.reshape is not None:
-            x = tf.keras.layers.Dense(np.prod(self.reshape), name=self.name + "_resize")(x)
+            x = tf.keras.layers.Dense(np.prod(self.reshape),
+                                      kernel_constraint=max_norm(3),
+                                      name=self.name + "_resize")(x)
         else:
             x = tf.keras.layers.Dense(self.unit, name=self.name + "_resize")(x)
         x = tf.keras.layers.Activation(self.activation, name=self.name + "_activation")(x)
