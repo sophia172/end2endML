@@ -79,6 +79,8 @@ if __name__=="__main__":
     X_train, X_test, y_train, y_test = train_test_split(*data)
     model = CNN("../../config/model_params_example.yml")
     model.build()
-    model.compile()
-    model.fit(X_train, y_train, X_test, y_test)
-    model.save()
+
+    model.debug_compile_fit(X_train, X_test, y_train, y_test)
+    # model.compile()
+    # model.fit(X_train, y_train, X_test, y_test)
+    # model.save()

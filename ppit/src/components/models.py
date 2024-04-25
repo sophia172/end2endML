@@ -75,6 +75,7 @@ class Conv2dBlock:
         logging.info(f"Add Conv2D block {self.name}")
         return x
 
+
 class Conv1dBlock:
     def __init__(self,
                  filters=32,
@@ -135,7 +136,6 @@ class Squeeze:
         return
 
     def __call__(self, x):
-
         logging.info(f"Add Squeeze block {self.name}")
         return tf.squeeze(x, axis=self.axis)
 
@@ -266,30 +266,38 @@ class Adam():
 
 class MSE:
     def __init__(self):
+        self.mse = tf.keras.losses.MeanSquaredError()
         return
 
-    def __call__(self):
+    def __call__(self, *args):
         logging.info(f"Add MSE loss.")
-        return tf.keras.losses.MeanSquaredError()
+        return self.mse(*args)
 
 
-class MAE():
+class MAE(tf.keras.losses.MeanAbsoluteError):
     def __init__(self):
         super().__init__()
         return
 
-    def __call__(self):
-        logging.info(f"Add MAE loss.")
-        return tf.keras.losses.MeanAbsoluteError()
+    # def __call__(self):
+    #     logging.info(f"Add MAE loss.")
+    #     return
 
 
+@tf.function
 class customLoss():
     def __init__(self):
         return
 
-    def __call__(self):
+    def __call__(self, y, y_pred):
         logging.info(f"Add custom loss.")
-        return tf.keras.losses.MSE()
+
+        y_pred = tf.squeeze(y_pred)
+        y_pred = tf.squeeze(y_pred)
+        y = tf.squeeze(y)
+        loss = tf.reduce_mean(
+            tf.reduce_sum(tf.square(y_pred - y), -1))
+        return loss
 
 
 class CNN():
@@ -344,9 +352,15 @@ class CNN():
         try:
             loss = eval(self.config.train.loss)()
             logging.info(f"Loss {self.config.train.loss} added.")
-            return loss()
+            return loss
         except Exception as e:
             raise CustomException(e, sys)
+
+    def data_generator(self, dataset, batch_size):
+        inputs, outputs = dataset
+        for i in range(0, len(inputs) // batch_size):
+            yield (inputs[i * batch_size:(i + 1) * batch_size],
+                   outputs[i * batch_size:(i + 1) * batch_size])
 
     def compile(self):
         try:
@@ -357,11 +371,57 @@ class CNN():
         except Exception as e:
             raise CustomException(e, sys)
 
-    def data_generator(self, dataset):
-        inputs, outputs = dataset
-        for i in range(0, len(inputs) // self.config.train.batch_size):
-            yield (inputs[i * self.config.train.batch_size:(i + 1) * self.config.train.batch_size],
-                   outputs[i * self.config.train.batch_size:(i + 1) * self.config.train.batch_size])
+    def debug_compile_fit(self, X_train, X_test, y_train, y_test):
+
+        # train_dataset, test_dataset = self.prep_data_for_model(X_train, X_test, y_train, y_test)
+        @tf.function
+        def train_step(x, y):
+            with tf.GradientTape() as tape:
+                logits = self.model(x, training=True)
+                print("logits\n", logits[0])
+                t = tf.get_static_value(
+                    logits[0], partial=False
+                )
+                print(t)
+                loss_value = self.loss()(y, logits)
+                t = tf.get_static_value(
+                    loss_value, partial=False
+                )
+                print(t)
+                print("loss value \n", loss_value)
+            grads = tape.gradient(loss_value, self.model.trainable_weights)
+            print("grads \n", grads)
+            t = tf.get_static_value(
+                grads[0], partial=False
+            )
+            print(t)
+            print("loss value \n", loss_value)
+            self.optimizer().apply_gradients(zip(grads, self.model.trainable_weights))
+            # train_acc_metric.update_state(y, logits)
+            # train_loss_metric.update_state(y, logits)
+            return loss_value
+
+        return train_step(X_train, y_train)
+
+        # @tf.function
+        # def test_step(x, y):
+        #     logits = self.model(x, training=False)
+        # val_acc_metric.update_state(y, logits)
+        # val_loss_metric.update_state(y, logits)
+
+    def prep_data_for_model(self, X_train, X_test, y_train, y_test):
+        train_dataset = tf.data.Dataset.from_generator(
+            lambda: self.data_generator((X_train, y_train), self.config.train.batch_size),
+            output_types=(tf.float32, tf.float32)).shuffle(
+            buffer_size=self.config.train.shuffle,
+            reshuffle_each_iteration=True).repeat(
+            self.config.train.shuffle)
+
+        test_dataset = tf.data.Dataset.from_generator(
+            lambda: self.data_generator((X_test, y_test), self.config.train.batch_size),
+            output_types=(tf.float32, tf.float32))
+        logging.info(f"Turn dataset array to TensorFlow dataset")
+        return train_dataset, test_dataset
 
     def fit(self, X_train, X_test, y_train, y_test):
         try:
@@ -371,16 +431,10 @@ class CNN():
                 self.model.set_weights(saved_model.get_weights())
                 logging.info(f"Load saved weights to initial the fit")
 
-            train_dataset = tf.data.Dataset.from_generator(
-                lambda: self.data_generator((X_train, y_train)),
-                output_types=(tf.float32, tf.float32)).shuffle(
-                buffer_size=self.config.train.shuffle,
-                reshuffle_each_iteration=True).repeat(
-                self.config.train.shuffle)
-            test_dataset = tf.data.Dataset.from_generator(
-                lambda: self.data_generator((X_test, y_test)), output_types=(tf.float32, tf.float32))
-            logging.info(f"Turn dataset array to TensorFlow dataset")
+            train_dataset, test_dataset = self.prep_data_for_model(X_train, X_test, y_train, y_test)
+
             tf.debugging.enable_check_numerics()
+
             self.model.fit(
                 train_dataset,
                 validation_data=test_dataset,
@@ -389,6 +443,7 @@ class CNN():
                 callbacks=self.callbacks(),
                 verbose=self.config.train.verbose
             )
+
             logging.info(f"Fitting process finished")
         except Exception as e:
             raise CustomException(e, sys)
@@ -405,5 +460,6 @@ class CNN():
 if __name__ == "__main__":
     model = CNN("../../../config/model_params_example.yml")
     model.build()
+    model.debug_compile_fit()
     # model.compile()
     # model.save()
