@@ -13,7 +13,7 @@ class Conv3dBlock:
                  kernel_size=(3, 3, 4),
                  strides=(3, 2, 2),
                  padding='same',
-                 activation='tanh',
+                 activation='relu',
                  dropout=2,
                  name='conv3d_block'
                  ):
@@ -47,7 +47,7 @@ class Conv2dBlock:
                  kernel_size=(2, 2),
                  strides=(1, 1),
                  padding='same',
-                 activation='tanh',
+                 activation='relu',
                  dropout=2,
                  name='conv2d_block'
                  ):
@@ -83,7 +83,7 @@ class Conv1dBlock:
                  kernel_size=2,
                  strides=1,
                  padding='same',
-                 activation='tanh',
+                 activation='relu',
                  dropout=2,
                  name='conv1d_block'
                  ):
@@ -145,7 +145,7 @@ class Squeeze:
 class DenseBlock:
     def __init__(self,
                  reshape=(128, 12, 3),
-                 activation='tanh',
+                 activation='relu',
                  dropout=2,
                  flatten=False,
                  unit=16,
@@ -311,7 +311,7 @@ class CNN():
                 for model, params in block.items():
                     model = eval(model)
                     x = model(**params)(x)
-            OutputLayer = x * np.pi
+            OutputLayer = x * 2 * np.pi - np.pi
 
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
