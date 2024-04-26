@@ -280,29 +280,51 @@ class MSE:
 
 class MAE(tf.keras.losses.MeanAbsoluteError):
     def __init__(self):
+        logging.info(f"Add MAE loss.")
         super().__init__()
         return
 
-    # def __call__(self):
-    #     logging.info(f"Add MAE loss.")
-    #     return
 
+from keras.losses import LossFunctionWrapper
+from keras.utils import losses_utils
 
-@tf.function
-class customLoss():
-    def __init__(self):
+class customLoss(LossFunctionWrapper):
+    def __init__(self,
+                 reduction=losses_utils.ReductionV2.AUTO,
+                 name='mean_absolute_error'):
+
+        super().__init__(mean_absolute_error, name=name, reduction=reduction)
         return
 
-    def __call__(self, y, y_pred):
-        logging.info(f"Add custom loss.")
 
-        y_pred = tf.squeeze(y_pred)
-        y_pred = tf.squeeze(y_pred)
-        y = tf.squeeze(y)
-        loss = tf.reduce_mean(
-            tf.reduce_sum(tf.square(y_pred - y), -1))
-        return loss
+from keras import backend
 
+def mean_absolute_error(y_true, y_pred):
+  """Computes the mean absolute error between labels and predictions.
+
+  `loss = mean(abs(y_true - y_pred), axis=-1)`
+
+  Standalone usage:
+
+  >>> y_true = np.random.randint(0, 2, size=(2, 3))
+  >>> y_pred = np.random.random(size=(2, 3))
+  >>> loss = tf.keras.losses.mean_absolute_error(y_true, y_pred)
+  >>> assert loss.shape == (2,)
+  >>> assert np.array_equal(
+  ...     loss.numpy(), np.mean(np.abs(y_true - y_pred), axis=-1))
+
+  Args:
+    y_true: Ground truth values. shape = `[batch_size, d0, .. dN]`.
+    y_pred: The predicted values. shape = `[batch_size, d0, .. dN]`.
+
+  Returns:
+    Mean absolute error values. shape = `[batch_size, d0, .. dN-1]`.
+  """
+  y_pred = tf.convert_to_tensor(y_pred)
+  y_true = tf.cast(y_true, y_pred.dtype)
+  output = backend.mean(tf.abs(y_pred - y_true), axis=-1)
+  tf.print(output)
+  return output
 
 class CNN():
     def __init__(self, configuration_path):
