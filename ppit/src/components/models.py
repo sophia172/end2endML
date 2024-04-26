@@ -287,8 +287,7 @@ class MAE(tf.keras.losses.MeanAbsoluteError):
 
 
 class customLoss():
-    def __init__(self ):
-
+    def __init__(self):
         return
 
 
@@ -380,8 +379,8 @@ class CNN():
                     pred = self.model(X_batch)
                     loss = self.loss()(y_batch, pred)
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                print(f"trainable variable \n {self.model.trainable_variables}\n ")
-                print(f"grads \n {grads}, \n loss\n{loss}")
+                print(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
+                print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss}")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
