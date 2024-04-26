@@ -370,38 +370,34 @@ class CNN():
         opt = self.optimizer()
         for epoch in range(self.config.train.epochs):
             for step in range(X_train.shape[0] // self.config.train.batch_size):
-                print(f"epoch {epoch}, step {step}")
+                # print(f"epoch {epoch}, step {step}")
                 start_idx = self.config.train.batch_size * step
                 end_idx = self.config.train.batch_size * (step + 1)
                 X_batch = X_train[start_idx:end_idx]
                 y_batch = y_train[start_idx:end_idx]
                 with tf.GradientTape() as tape:
                     pred = self.model(X_batch)
-                    # for layer in self.model.layers:
+                    for layer in self.model.layers:
 
-                        # print(layer.name)
-                        # get_layer_output = tf.keras.backend.function([self.model.input], [layer.output])
-                        # layer_output = get_layer_output([X_batch])[0]
-                        # print(layer_output[0][0][0])
+                        logging.info(layer.name)
+                        get_layer_output = tf.keras.backend.function([self.model.input], [layer.output])
+                        layer_output = get_layer_output([X_batch])[0]
+                        logging.info(f"{layer_output[0][0][0]}")
                     loss = self.loss()(y_batch, pred)
-                # print(f"check model prediction \n X \n {X_batch[:2]}, \n Prediction \n {pred[:2]}")
+                logging.info(f"check model prediction \n X \n {X_batch[:2]}, \n Prediction \n {pred[:2]}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                nan_flag = []
-                for a in self.model.trainable_variables:
-                    for b in a:
-                        nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
+                # nan_flag = []
+                # for a in self.model.trainable_variables:
+                #     for b in a:
+                #         nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
 
                 # print(f"check >0.5 value, {sum(nan_flag)}")
-                # print(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
-                print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
+                logging.info(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
+                logging.info(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
-        # @tf.function
-        # def test_step(x, y):
-        #     logits = self.model(x, training=False)
-        # val_acc_metric.update_state(y, logits)
-        # val_loss_metric.update_state(y, logits)
+
 
     def prep_data_for_model(self, X_train, X_test, y_train, y_test):
         train_dataset = tf.data.Dataset.from_generator(
@@ -456,4 +452,4 @@ if __name__ == "__main__":
     model.build()
     model.debug_compile_fit()
     # model.compile()
-    # model.save()
+    model.save()
