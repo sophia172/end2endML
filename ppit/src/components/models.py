@@ -248,7 +248,6 @@ class early_stopping():
             restore_best_weights=self.restore_best_weights,
         )
 
-from ppit.src.components import adam
 
 class Adam():
     def __init__(self,
@@ -262,7 +261,7 @@ class Adam():
 
     def __call__(self):
         logging.info(f"Add Adam optimiser.")
-        return adam.Adam(
+        return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
             decay=self.decay,
             clipnorm=self.clipnorm
@@ -286,46 +285,14 @@ class MAE(tf.keras.losses.MeanAbsoluteError):
         return
 
 
-from keras.losses import LossFunctionWrapper
-from keras.utils import losses_utils
 
-class customLoss(LossFunctionWrapper):
-    def __init__(self,
-                 reduction=losses_utils.ReductionV2.AUTO,
-                 name='mean_absolute_error'):
+class customLoss():
+    def __init__(self ):
 
-        super().__init__(mean_absolute_error, name=name, reduction=reduction)
         return
 
 
-from keras import backend
 
-def mean_absolute_error(y_true, y_pred):
-  """Computes the mean absolute error between labels and predictions.
-
-  `loss = mean(abs(y_true - y_pred), axis=-1)`
-
-  Standalone usage:
-
-  >>> y_true = np.random.randint(0, 2, size=(2, 3))
-  >>> y_pred = np.random.random(size=(2, 3))
-  >>> loss = tf.keras.losses.mean_absolute_error(y_true, y_pred)
-  >>> assert loss.shape == (2,)
-  >>> assert np.array_equal(
-  ...     loss.numpy(), np.mean(np.abs(y_true - y_pred), axis=-1))
-
-  Args:
-    y_true: Ground truth values. shape = `[batch_size, d0, .. dN]`.
-    y_pred: The predicted values. shape = `[batch_size, d0, .. dN]`.
-
-  Returns:
-    Mean absolute error values. shape = `[batch_size, d0, .. dN-1]`.
-  """
-  y_pred = tf.convert_to_tensor(y_pred)
-  y_true = tf.cast(y_true, y_pred.dtype)
-  output = backend.mean(tf.abs(y_pred - y_true), axis=-1)
-  # tf.print(output)
-  return output
 
 class CNN():
     def __init__(self, configuration_path):
@@ -413,6 +380,7 @@ class CNN():
                     pred = self.model(X_batch)
                     loss = self.loss()(y_batch, pred)
                 grads = tape.gradient(loss, self.model.trainable_variables)
+                print(f"trainable variable \n {self.model.trainable_variables}\n ")
                 print(f"grads \n {grads}, \n loss\n{loss}")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
