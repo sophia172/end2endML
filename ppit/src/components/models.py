@@ -248,6 +248,7 @@ class early_stopping():
             restore_best_weights=self.restore_best_weights,
         )
 
+from ppit.src.components import adam
 
 class Adam():
     def __init__(self,
@@ -261,7 +262,7 @@ class Adam():
 
     def __call__(self):
         logging.info(f"Add Adam optimiser.")
-        return tf.keras.optimizers.Adam(
+        return adam.Adam(
             learning_rate=self.learning_rate,
             decay=self.decay,
             clipnorm=self.clipnorm
@@ -323,7 +324,7 @@ def mean_absolute_error(y_true, y_pred):
   y_pred = tf.convert_to_tensor(y_pred)
   y_true = tf.cast(y_true, y_pred.dtype)
   output = backend.mean(tf.abs(y_pred - y_true), axis=-1)
-  tf.print(output)
+  # tf.print(output)
   return output
 
 class CNN():
@@ -400,34 +401,21 @@ class CNN():
     def debug_compile_fit(self, X_train, X_test, y_train, y_test):
 
         # train_dataset, test_dataset = self.prep_data_for_model(X_train, X_test, y_train, y_test)
-        @tf.function
-        def train_step(x, y):
-            with tf.GradientTape() as tape:
-                logits = self.model(x, training=True)
-                print("logits\n", logits[0])
-                t = tf.get_static_value(
-                    logits[0], partial=False
-                )
-                print(t)
-                loss_value = self.loss()(y, logits)
-                t = tf.get_static_value(
-                    loss_value, partial=False
-                )
-                print(t)
-                print("loss value \n", loss_value)
-            grads = tape.gradient(loss_value, self.model.trainable_weights)
-            print("grads \n", grads)
-            t = tf.get_static_value(
-                grads[0], partial=False
-            )
-            print(t)
-            print("loss value \n", loss_value)
-            self.optimizer().apply_gradients(zip(grads, self.model.trainable_weights))
-            # train_acc_metric.update_state(y, logits)
-            # train_loss_metric.update_state(y, logits)
-            return loss_value
+        opt = self.optimizer()
+        for epoch in range(self.config.train.epochs):
+            for step in range(X_train.shape[0] // self.config.train.batch_size):
+                print(f"epoch {epoch}, step {step}")
+                start_idx = self.config.train.batch_size * step
+                end_idx = self.config.train.batch_size * (step + 1)
+                X_batch = X_train[start_idx:end_idx]
+                y_batch = y_train[start_idx:end_idx]
+                with tf.GradientTape() as tape:
+                    pred = self.model(X_batch)
+                    loss = self.loss()(y_batch, pred)
+                grads = tape.gradient(loss, self.model.trainable_variables)
+                print(f"grads \n {grads}, \n loss\n{loss}")
+                opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
-        return train_step(X_train, y_train)
 
         # @tf.function
         # def test_step(x, y):
