@@ -248,4 +248,6 @@ class DataLoader():
 
 
 if __name__ == "__main__":
-    pass
+    data_loader = DataLoader("../../../data/vertexAI_PPIT_data.csv")
+    data = data_loader()
+    print(np.max(data[0]), np.min(data[0]), np.max(data[1]), np.min(data[1]))

@@ -105,7 +105,7 @@ def cli():
     try:
         model = CNN("config/model_params_example.yml")
         model.build()
-        model.debug_compile_fit(X_train[:64], X_test[:64], y_train[:64], y_test[:64])
+        model.debug_compile_fit(X_train[:640], X_test[:640], y_train[:640], y_test[:640])
         # model.compile()
         # model.fit(X_train, X_test, y_train, y_test)
         # model.save()
