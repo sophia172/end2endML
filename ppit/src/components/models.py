@@ -378,7 +378,7 @@ class CNN():
                 with tf.GradientTape() as tape:
                     pred = self.model(X_batch)
                     loss = self.loss()(y_batch, pred)
-                print(f"check model prediction \n Truth \n {y_batch[:5]}, \n Prediction \n {pred[:5]}")
+                print(f"check model prediction \n X \n {X_batch[:5]}, \n Prediction \n {pred[:5]}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 nan_flag = []
                 for a in self.model.trainable_variables:
