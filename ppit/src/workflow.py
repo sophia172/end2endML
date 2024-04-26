@@ -12,6 +12,7 @@ from ppit.src.utils import none_or_str
 
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 def cli():
     """
     Sort out parameters here

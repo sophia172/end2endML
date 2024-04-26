@@ -383,9 +383,9 @@ class CNN():
                 nan_flag = []
                 for a in self.model.trainable_variables:
                     for b in a:
-                                nan_flag.append(np.isnan(b).any())
+                                nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
 
-                print(f"check NaN value, {sum(nan_flag)}")
+                print(f"check >1 value, {sum(nan_flag)}")
                 print(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
                 print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
