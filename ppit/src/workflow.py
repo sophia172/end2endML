@@ -10,6 +10,8 @@ from ppit.src.components.model_trainer import BaselineSearch
 from ppit.src.components.models import CNN
 from ppit.src.utils import none_or_str
 
+
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 def cli():
     """
     Sort out parameters here
