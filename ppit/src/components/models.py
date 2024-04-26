@@ -377,15 +377,21 @@ class CNN():
                 y_batch = y_train[start_idx:end_idx]
                 with tf.GradientTape() as tape:
                     pred = self.model(X_batch)
+                    for layer in self.model.layers:
+
+                        print(layer.name)
+                        get_layer_output = tf.keras.backend.function([self.model.input], [layer.output])
+                        layer_output = get_layer_output([X_batch])[0]
+                        print(layer_output[0][0][0])
                     loss = self.loss()(y_batch, pred)
-                print(f"check model prediction \n X \n {X_batch[:5]}, \n Prediction \n {pred[:5]}")
+                print(f"check model prediction \n X \n {X_batch[:2]}, \n Prediction \n {pred[:2]}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 nan_flag = []
                 for a in self.model.trainable_variables:
                     for b in a:
                                 nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
 
-                print(f"check >1 value, {sum(nan_flag)}")
+                print(f"check >0.5 value, {sum(nan_flag)}")
                 print(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
                 print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
