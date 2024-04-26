@@ -393,7 +393,7 @@ class CNN():
 
                 # print(f"check >0.5 value, {sum(nan_flag)}")
                 # print(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
-                # print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
+                print(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
