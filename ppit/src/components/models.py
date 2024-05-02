@@ -391,7 +391,12 @@ class CNN():
                         input_layer = layer.output
                         input = layer_output
                     loss = self.loss()(y_batch, layer_output)
-                logging.info(f"check model prediction NaN vallue \n X \n {has_nan(X_batch)}, \n Prediction \n {has_nan(layer_output)}")
+                logging.info(
+                    f"check model prediction \n {layer_output[0]}")
+
+                logging.info(f"check model prediction NaN vallue \n X \n {has_nan(X_batch)}, "
+                             f"\n Prediction \n {has_nan(layer_output)}\n "
+                             f"y_batch \n {has_nan(y_batch)}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 # logging.info(f"trainable variable : \n {self.model.trainable_variables}\n ")
                 logging.info(f"trainable variable has NaN value: \n {has_nan(self.model.trainable_variables)}\n ")
