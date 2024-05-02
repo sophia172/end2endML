@@ -385,26 +385,25 @@ class CNN():
                         # get_layer_output = tf.keras.backend.function([input_layer], [layer.output])
                         layer_model = tf.keras.Model(input_layer, layer.output)
                         layer_output = layer_model(input)
-                        logging.info(f"Layer output has NaN: {has_nan(layer_output)},  \n {layer_output[0]}")
-                        logging.info(f"{np.isnan(layer_output[0][0]).any()}, {np.isnan(layer_output[0][0][0])}, ")
-                        self.model.get_layer(layer.name).set_weights(layer_model.get_weights())
+                        logging.info(f"Layer output has NaN: {np.isnan(layer_output).any()}")
+                        weights = layer_model.get_weights()
+                        for weight in weights:
+                            logging.info(f"Layer weight has NaN before layer {layer.name}: {np.isnan(weight).any()}")
+                        self.model.get_layer(layer.name).set_weights(weights)
                         input_layer = layer.output
                         input = layer_output
                     layer_model = tf.keras.Model(input_layer, layer.output)
                     layer_output = layer_model(input)
-                    logging.info(f"Layer output has NaN: {has_nan(layer_output)}")
+                    logging.info(f"Model output has NaN: {np.isnan(layer_output).any()}")
                     loss = self.loss()(y_batch, layer_output)
-                logging.info(
-                    f"check model prediction \n {layer_output[0]}")
+                    logging.info(f"Loss : {loss}")
 
-                logging.info(f"check model prediction NaN vallue \n X \n {has_nan(X_batch)}, "
-                             f"\n Prediction \n {has_nan(layer_output)}\n "
-                             f"y_batch \n {has_nan(y_batch)}")
+                logging.info(f"check model prediction NaN vallue \n X \n {np.isnan(X_batch).any()}, "
+                             f"\n Prediction \n {np.isnan(layer_output).any()}\n "
+                             f"y_batch \n {np.isnan(y_batch).any()}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                # logging.info(f"trainable variable : \n {self.model.trainable_variables}\n ")
-                logging.info(f"trainable variable has NaN value: \n {has_nan(self.model.trainable_variables)}\n ")
-                logging.info(f"grads has NaN value: \n {has_nan(grads)}, \n loss\n{loss} \n ")
-                # logging.info(f"grads value: \n {grads} \n ")
+                for grad in grads:
+                    logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
