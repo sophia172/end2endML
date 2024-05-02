@@ -413,7 +413,7 @@ class CNN():
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                logging.info(f"check trainable_variable \n X \n {self.model.trainable_variable}")
+                logging.info(f"check trainable_variable \n X \n {self.model.trainable_variables}")
                 # prev_grad=0
                 # for grad in grads:
                 #     logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
