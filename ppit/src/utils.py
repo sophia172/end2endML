@@ -154,7 +154,7 @@ def has_nan(data):
                 return True
         return False
     else:
-        return data is None
+        return data is None or (isinstance(data, float) and np.isnan(data))
 
 if __name__=="__main__":
     pass

@@ -389,6 +389,9 @@ class CNN():
                         self.model.get_layer(layer.name).set_weights(layer_model.get_weights())
                         input_layer = layer.output
                         input = layer_output
+                    layer_model = tf.keras.Model(input_layer, layer.output)
+                    layer_output = layer_model(input)
+                    logging.info(f"Layer output has NaN: {has_nan(layer_output)}")
                     loss = self.loss()(y_batch, layer_output)
                 logging.info(
                     f"check model prediction \n {layer_output[0]}")
