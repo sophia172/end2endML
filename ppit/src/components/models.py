@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from ppit.src.utils import load_config, none_or_str
+from ppit.src.utils import load_config, none_or_str, has_nan
 import os
 import sys
 from ppit.src.exception import CustomException
@@ -382,7 +382,7 @@ class CNN():
                         logging.info(layer.name)
                         get_layer_output = tf.keras.backend.function([self.model.input], [layer.output])
                         layer_output = get_layer_output([X_batch])[0]
-                        logging.info(f"{layer_output[0][0][0]}")
+                        logging.info(f"Layer output has NaN: {has_nan(layer_output)}")
                     loss = self.loss()(y_batch, pred)
                 logging.info(f"check model prediction \n X \n {X_batch[:2]}, \n Prediction \n {pred[:2]}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
@@ -392,8 +392,9 @@ class CNN():
                 #         nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
 
                 # print(f"check >0.5 value, {sum(nan_flag)}")
-                logging.info(f"trainable variable \n {self.model.trainable_variables[0][0][0][0]}\n ")
-                logging.info(f"grads \n {grads[0][0][0][0]}, \n loss\n{loss} \n ")
+
+                logging.info(f"trainable variable has NaN value: \n {has_nan(self.model.trainable_variables)}\n ")
+                logging.info(f"grads has NaN value: \n {has_nan(grads)}, \n loss\n{loss} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 

@@ -8,7 +8,7 @@ from ppit.src.logger import logging
 from dataclasses import dataclass
 from sklearn.metrics import r2_score
 import pandas as pd
-
+import numpy as np
 
 
 @dataclass
@@ -142,7 +142,19 @@ def evaluate_models(X_train, X_test, y_train, y_test, models={}, metric=r2_score
         logging.error(e)
         raise CustomException(e, sys)
 
-
+def has_nan(data):
+    if isinstance(data, list):
+        for item in data:
+            if has_nan(item):
+                return True
+        return False
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            if has_nan(value):
+                return True
+        return False
+    else:
+        return isinstance(data, float) and np.isnan(data)
 
 if __name__=="__main__":
     pass
