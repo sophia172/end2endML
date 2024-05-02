@@ -376,25 +376,27 @@ class CNN():
                 X_batch = X_train[start_idx:end_idx]
                 y_batch = y_train[start_idx:end_idx]
                 with tf.GradientTape() as tape:
-                    pred = self.model(X_batch)
+                    # layer_output = self.model(X_batch)
+                    input_layer = self.model.input
+                    input = X_batch
                     for layer in self.model.layers:
-
+                        if not layer.trainable_weights:
+                            continue
                         logging.info(layer.name)
-                        get_layer_output = tf.keras.backend.function([self.model.input], [layer.output])
-                        layer_output = get_layer_output([X_batch])[0]
+                        # get_layer_output = tf.keras.backend.function([input_layer], [layer.output])
+                        layer_model = tf.keras.Model(input_layer, layer.output)
+                        layer_output = layer_model(input)
                         logging.info(f"Layer output has NaN: {has_nan(layer_output)}")
-                    loss = self.loss()(y_batch, pred)
-                logging.info(f"check model prediction \n X \n {X_batch[:2]}, \n Prediction \n {pred[:2]}")
+                        self.model.get_layer(layer.name).set_weights(layer_model.get_weights())
+                        input_layer = layer.output
+                        input = layer_output
+                    loss = self.loss()(y_batch, layer_output)
+                logging.info(f"check model prediction NaN vallue \n X \n {has_nan(X_batch)}, \n Prediction \n {has_nan(layer_output)}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                # nan_flag = []
-                # for a in self.model.trainable_variables:
-                #     for b in a:
-                #         nan_flag.append(np.sum(np.where(np.abs(b)>0.5)))
-
-                # print(f"check >0.5 value, {sum(nan_flag)}")
-
+                # logging.info(f"trainable variable : \n {self.model.trainable_variables}\n ")
                 logging.info(f"trainable variable has NaN value: \n {has_nan(self.model.trainable_variables)}\n ")
                 logging.info(f"grads has NaN value: \n {has_nan(grads)}, \n loss\n{loss} \n ")
+                # logging.info(f"grads value: \n {grads} \n ")
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
