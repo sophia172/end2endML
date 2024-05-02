@@ -311,7 +311,7 @@ class CNN():
                 for model, params in block.items():
                     model = eval(model)
                     x = model(**params)(x)
-            OutputLayer = x * 2 * np.pi - np.pi
+            OutputLayer = x * np.pi
 
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
@@ -385,7 +385,8 @@ class CNN():
                         # get_layer_output = tf.keras.backend.function([input_layer], [layer.output])
                         layer_model = tf.keras.Model(input_layer, layer.output)
                         layer_output = layer_model(input)
-                        logging.info(f"Layer output has NaN: {has_nan(layer_output)}, \n {layer_output[0]}")
+                        logging.info(f"Layer output has NaN: {has_nan(layer_output)},  \n {layer_output[0]}")
+                        logging.info(f"{np.isnan(layer_output[0][0]).any()}, {np.isnan(layer_output[0][0][0])}, ")
                         self.model.get_layer(layer.name).set_weights(layer_model.get_weights())
                         input_layer = layer.output
                         input = layer_output
