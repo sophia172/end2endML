@@ -412,6 +412,10 @@ class CNN():
                 grads = tape.gradient(loss, self.model.trainable_variables)
                 for grad in grads:
                     logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
+                    prev_grad = grad
+                    if np.isnan(grad).any():
+                        logging.info(f"check grad before NaN \n X \n {prev_grad}")
+
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
 
