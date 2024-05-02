@@ -378,17 +378,25 @@ class CNN():
                 with tf.GradientTape() as tape:
                     input_layer = self.model.input
                     input = X_batch
+                    layer_output = 0
                     for layer in self.model.layers:
                         if not layer.trainable_weights:
                             continue
                         logging.info(layer.name)
                         # get_layer_output = tf.keras.backend.function([input_layer], [layer.output])
                         layer_model = tf.keras.Model(input_layer, layer.output)
+                        prev_output = layer_output
                         layer_output = layer_model(input)
                         logging.info(f"Layer output has NaN: {np.isnan(layer_output).any()}")
+                        if np.isnan(layer_output).any():
+                            logging.info(f"Layer output before NaN: {prev_output}")
                         weights = layer_model.get_weights()
                         for weight in weights:
                             logging.info(f"Layer weight has NaN before layer {layer.name}: {np.isnan(weight).any()}")
+                            prev_weight = weight
+                            if np.isnan(weight).any():
+                                logging.info(f"weight before NaN: {prev_weight}")
+
                         self.model.get_layer(layer.name).set_weights(weights)
                         input_layer = layer.output
                         input = layer_output
@@ -398,7 +406,7 @@ class CNN():
                     loss = self.loss()(y_batch, layer_output)
                     logging.info(f"Loss : {loss}")
 
-                logging.info(f"check model prediction NaN vallue \n X \n {np.isnan(X_batch).any()}, "
+                logging.info(f"check model prediction NaN value \n X \n {np.isnan(X_batch).any()}, "
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
