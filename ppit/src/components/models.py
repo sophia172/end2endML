@@ -31,12 +31,12 @@ class Conv3dBlock:
                                    strides=self.strides,
                                    padding=self.padding,
                                    name=self.name + "_conv3d")(x)
-        x = tf.keras.layers.BatchNormalization(axis=-1,
-                                               name=self.name + "_batchNorm")(x)
+        # x = tf.keras.layers.BatchNormalization(axis=-1,
+        #                                        name=self.name + "_batchNorm")(x)
         x = tf.keras.layers.Activation(self.activation,
                                        name=self.name + "_activation")(x)
-        x = tf.keras.layers.Dropout(self.dropout,
-                                    name=self.name + "_dropout")(x)
+        # x = tf.keras.layers.Dropout(self.dropout,
+        #                             name=self.name + "_dropout")(x)
         logging.info(f"Add Conv3D block {self.name}")
         return x
 
@@ -66,12 +66,12 @@ class Conv2dBlock:
                                    strides=self.strides,
                                    padding=self.padding,
                                    name=self.name + "_conv2d")(x)
-        x = tf.keras.layers.BatchNormalization(axis=-1,
-                                               name=self.name + "_batchNorm")(x)
+        # x = tf.keras.layers.BatchNormalization(axis=-1,
+        #                                        name=self.name + "_batchNorm")(x)
         x = tf.keras.layers.Activation(self.activation,
                                        name=self.name + "_activation")(x)
-        x = tf.keras.layers.Dropout(self.dropout,
-                                    name=self.name + "_dropout")(x)
+        # x = tf.keras.layers.Dropout(self.dropout,
+        #                             name=self.name + "_dropout")(x)
 
         logging.info(f"Add Conv2D block {self.name}")
         return x
@@ -102,12 +102,12 @@ class Conv1dBlock:
                                    padding=self.padding,
                                    kernel_constraint=max_norm(3),
                                    name=self.name + "_conv1d")(x)
-        x = tf.keras.layers.BatchNormalization(axis=-1,
-                                               name=self.name + "_batchNorm")(x)
+        # x = tf.keras.layers.BatchNormalization(axis=-1,
+        #                                        name=self.name + "_batchNorm")(x)
         x = tf.keras.layers.Activation(self.activation,
                                        name=self.name + "_activation")(x)
-        x = tf.keras.layers.Dropout(self.dropout,
-                                    name=self.name + "_dropout")(x)
+        # x = tf.keras.layers.Dropout(self.dropout,
+        #                             name=self.name + "_dropout")(x)
 
         logging.info(f"Add Conv1D block {self.name}")
         return x
