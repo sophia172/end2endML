@@ -385,7 +385,7 @@ class CNN():
                         # get_layer_output = tf.keras.backend.function([input_layer], [layer.output])
                         layer_model = tf.keras.Model(input_layer, layer.output)
                         layer_output = layer_model(input)
-                        logging.info(f"Layer output has NaN: {layer_output[0]}")
+                        logging.info(f"Layer output has NaN: {has_nan(layer_output)}, \n {layer_output[0]}")
                         self.model.get_layer(layer.name).set_weights(layer_model.get_weights())
                         input_layer = layer.output
                         input = layer_output
