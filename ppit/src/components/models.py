@@ -387,18 +387,18 @@ class CNN():
                         layer_model = tf.keras.Model(input_layer, layer.output)
                         layer_output = layer_model(input)
                         logging.info(f"Layer output has NaN: {np.isnan(layer_output).any()}")
-                        if np.isnan(layer_output).any():
-                            logging.info(f"Layer output before NaN: {prev_output}")
+                        # if np.isnan(layer_output).any():
+                        #     logging.info(f"Layer output before NaN: {prev_output}")
 
-                        prev_output = layer_output
+                        # prev_output = layer_output
                         weights = layer_model.get_weights()
 
-                        prev_weight = 0
+                        # prev_weight = 0
                         for weight in weights:
                             logging.info(f"Layer weight has NaN before layer {layer.name}: {np.isnan(weight).any()}")
-                            if np.isnan(weight).any():
-                                logging.info(f"weight before NaN: {prev_weight}")
-                            prev_weight = weight
+                        #     if np.isnan(weight).any():
+                        #         logging.info(f"weight before NaN: {prev_weight}")
+                        #     prev_weight = weight
 
                         self.model.get_layer(layer.name).set_weights(weights)
                         input_layer = layer.output
@@ -413,12 +413,13 @@ class CNN():
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
-                prev_grad=0
-                for grad in grads:
-                    logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
-                    if np.isnan(grad).any():
-                        logging.info(f"check grad before NaN \n X \n {prev_grad}")
-                    prev_grad = grad
+                logging.info(f"check trainable_variable \n X \n {self.model.trainable_variable}")
+                # prev_grad=0
+                # for grad in grads:
+                #     logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
+                #     if np.isnan(grad).any():
+                #         logging.info(f"check grad before NaN \n X \n {prev_grad}")
+                #     prev_grad = grad
 
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
