@@ -6,7 +6,6 @@ import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from keras.constraints import max_norm
-os.environ['TF_ENABLE_ONEDNN_OPTS']=0
 class Conv3dBlock:
     def __init__(self,
                  filters=32,
