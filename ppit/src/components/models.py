@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from ppit.src.utils import load_config, none_or_str, has_nan
+from ppit.src.utils import load_config, none_or_str, has_nan, writer
 import os
 import sys
 from ppit.src.exception import CustomException
@@ -413,6 +413,9 @@ class CNN():
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
                 grads = tape.gradient(loss, self.model.trainable_variables)
+                writer({"loss": loss,
+                        "variables": self.model.trainable_variables},
+                       f"variable/epoch{epoch}_step{step}.p")
                 logging.info(f"check trainable_variable \n X \n {self.model.trainable_variables}")
                 # prev_grad=0
                 for grad in grads:
