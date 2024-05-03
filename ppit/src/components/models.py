@@ -1,12 +1,12 @@
 import tensorflow as tf
 import numpy as np
-from ppit.src.utils import load_config, none_or_str, has_nan, writer
+from ppit.src.utils import load_config, none_or_str, has_nan, writer, reader
 import os
 import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from keras.constraints import max_norm
-
+os.environ['TF_ENABLE_ONEDNN_OPTS']=0
 class Conv3dBlock:
     def __init__(self,
                  filters=32,
@@ -412,10 +412,31 @@ class CNN():
                 logging.info(f"check model prediction NaN value \n X \n {np.isnan(X_batch).any()}, "
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
-                grads = tape.gradient(loss, self.model.trainable_variables)
+
+                # grads = tape.gradient(loss, obj["variables"])
                 writer({"loss": loss,
                         "variables": self.model.trainable_variables},
-                       f"variable/epoch{epoch}_step{step}.p")
+                       f"variable/local_epoch{epoch}_step{step}.p")
+                # for grad in grads:
+                #     print(f"local pc computes grads {np.isnan(grad).any()}" )
+                print(f"before saving {type(loss)}, {loss}", )
+                obj = reader(f"variable/epoch{epoch}_step{step}.p")
+                print(f"after saving {type(obj['loss'])}, {obj['loss']}")
+                # grads = tape.gradient(obj["loss"], obj["variables"])
+                # grads = tape.gradient(loss, obj["variables"])
+                loss = tf.math.add(tf.math.add(0.5484536290168762, -loss), loss)
+
+                print(f"after saving {type(loss)}, {loss}")
+                for i in range(len(self.model.trainable_variables)):
+                    self.model.trainable_variables[i].assign(obj["variables"][i])
+
+                # grads = tape.gradient(obj["loss"], self.model.trainable_variables)
+                grads = tape.gradient(loss, self.model.trainable_variables)
+
+                print(grads[-1])
+                # writer({"loss": loss,
+                #         "variables": self.model.trainable_variables},
+                #        f"variable/epoch{epoch}_step{step}.p")
                 logging.info(f"check trainable_variable \n X \n {self.model.trainable_variables}")
                 # prev_grad=0
                 for grad in grads:
