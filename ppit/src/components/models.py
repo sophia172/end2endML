@@ -6,6 +6,7 @@ import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from keras.constraints import max_norm
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = 0
 class Conv3dBlock:
     def __init__(self,
                  filters=32,
@@ -415,24 +416,24 @@ class CNN():
                 # grads = tape.gradient(loss, obj["variables"])
                 writer({"loss": loss,
                         "variables": self.model.trainable_variables},
-                       f"variable/local_epoch{epoch}_step{step}.p")
+                       f"variable/epoch{epoch}_step{step}.p")
                 # for grad in grads:
                 #     print(f"local pc computes grads {np.isnan(grad).any()}" )
-                print(f"before saving {type(loss)}, {loss}", )
-                obj = reader(f"variable/epoch{epoch}_step{step}.p")
-                print(f"after saving {type(obj['loss'])}, {obj['loss']}")
+                # print(f"before saving {type(loss)}, {loss}", )
+                # obj = reader(f"variable/epoch{epoch}_step{step}.p")
+                # print(f"after saving {type(obj['loss'])}, {obj['loss']}")
                 # grads = tape.gradient(obj["loss"], obj["variables"])
                 # grads = tape.gradient(loss, obj["variables"])
-                loss = tf.math.add(tf.math.add(0.5484536290168762, -loss), loss)
+                # loss = tf.math.add(tf.math.add(0.5484536290168762, -loss), loss)
 
-                print(f"after saving {type(loss)}, {loss}")
-                for i in range(len(self.model.trainable_variables)):
-                    self.model.trainable_variables[i].assign(obj["variables"][i])
+                # print(f"after saving {type(loss)}, {loss}")
+                # for i in range(len(self.model.trainable_variables)):
+                #     self.model.trainable_variables[i].assign(obj["variables"][i])
 
                 # grads = tape.gradient(obj["loss"], self.model.trainable_variables)
                 grads = tape.gradient(loss, self.model.trainable_variables)
 
-                print(grads[-1])
+                # print(grads[-1])
                 # writer({"loss": loss,
                 #         "variables": self.model.trainable_variables},
                 #        f"variable/epoch{epoch}_step{step}.p")
