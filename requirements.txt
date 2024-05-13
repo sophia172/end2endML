@@ -1,7 +1,1 @@
-tensorflow-gpu
-pandas
-numpy
-scipy
 pyyaml
-scikit-learn
-xgboost
