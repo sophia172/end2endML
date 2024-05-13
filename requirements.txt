@@ -1,4 +1,4 @@
-tensorflow[and-cuda]
+tensorflow[and-cuda]==2.15.*
 pandas
 numpy
 scipy
