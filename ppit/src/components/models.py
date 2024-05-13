@@ -474,8 +474,6 @@ class CNN():
 
             train_dataset, test_dataset = self.prep_data_for_model(X_train, X_test, y_train, y_test)
 
-            tf.debugging.enable_check_numerics()
-
             self.model.fit(
                 train_dataset,
                 validation_data=test_dataset,
