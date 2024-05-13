@@ -1,7 +1,6 @@
-tensorflow-gpu; python_version>="3"
-pandas; python_version>="3"
-numpy; python_version>="3"
-scipy; python_version>="3"
-pyyaml; python_version>="3"
-scikit-learn; python_version>="3"
-xgboost; python_version>="3"
+pandas
+numpy
+scipy
+pyyaml
+scikit-learn
+xgboost
