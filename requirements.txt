@@ -1,4 +1,4 @@
-tensorflow-gpu==2.9.*
+tensorflow-gpu
 pandas
 numpy
 scipy
