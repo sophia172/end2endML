@@ -261,7 +261,7 @@ class Adam():
 
     def __call__(self):
         logging.info(f"Add Adam optimiser.")
-        return tf.keras.optimizers.Adam(
+        return tf.keras.optimizers.legacy.Adam(
             learning_rate=self.learning_rate,
             decay=self.decay,
             clipnorm=self.clipnorm
