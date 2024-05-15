@@ -466,9 +466,8 @@ class CNN():
 
     def fit(self, X_train, X_test, y_train, y_test):
         try:
-            saved_model_path = os.path.join(self.model_dir, "saved_model")
-            if self.config.train.retrain and os.path.exists(saved_model_path):
-                saved_model = tf.keras.models.load_model(saved_model_path)
+            if self.config.train.retrain and os.path.exists(self.model_dir):
+                saved_model = tf.keras.models.load_model(self.model_dir)
                 self.model.set_weights(saved_model.get_weights())
                 logging.info(f"Load saved weights to initial the fit")
 
@@ -489,9 +488,8 @@ class CNN():
 
     def save(self):
         try:
-            saved_model_path = os.path.join(self.model_dir, "saved_model")
-            self.model.save(saved_model_path, save_format='h5')
-            logging.info(f"Model saved at {saved_model_path}")
+            self.model.save(self.model_dir)
+            logging.info(f"Model saved at {self.model_dir}")
         except Exception as e:
             raise CustomException(e, sys)
 

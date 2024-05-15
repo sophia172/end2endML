@@ -107,7 +107,7 @@ def cli():
         model.build()
         # model.debug_compile_fit(X_train, X_test, y_train, y_test)
         model.compile()
-        model.fit(X_train, X_test, y_train, y_test)
+        model.fit(X_train[:256], X_test[:256], y_train[:256], y_test[:256])
         model.save()
         logging.info("Finished training pipeline")
     except Exception as e:
