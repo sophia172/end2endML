@@ -1,7 +1,8 @@
+import collections
 import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
-from ppit.src.utils import writer, evaluate_models
+from ppit.src.utils import writer, evaluate_models, scan_folder, basename
 import os
 from sklearn.ensemble import (
     RandomForestRegressor,
@@ -10,20 +11,45 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
 from sklearn.metrics import r2_score
+from ppit.src.components.models import CNN
 
 
+MODEL = {
+            'CNN': CNN,
 
+    }
 
 class ModelTrainer:
-    def __init__(self):
-        pass
+    def __init__(self, config_folder):
+        model_config_files = scan_folder(config_folder)
+        self.model_setup = collections.defaultdict(dict)
+        for config_file in model_config_files:
+            config_filename = basename(config_file)
+
+            model, self.model_setup[config_filename]["model"] = self.check_model_configuration_name(config_filename)
+            self.model_setup[config_filename]["config_file"] = config_file
+            logging.info(f"Successfully find configuration for {model}")
+
+
+
+    def check_model_configuration_name(self, filename):
+        definition, model, id = os.path.splitext(filename)[0].split('_')
+        if definition == "model":
+            return model+id, MODEL[model]
+        else:
+            raise CustomException("Model name must start with 'model'")
 
     def __call__(self, X_train, X_test, y_train, y_test):
+
         try:
-            logging.info(f"Import data")
-            # TODO
-        except CustomException as e:
-            logging.error(e)
+            for model_name in self.model_setup:
+                model = self.model_setup[model_name]["model"](self.model_setup[model_name]["config_file"])
+                model.build()
+                model.compile()
+                model.fit(X_train, X_test, y_train, y_test)
+                model.save()
+                logging.info(f"Finished training pipeline for model {model_name}")
+        except Exception as e:
             raise CustomException(e, sys)
 
 
@@ -69,6 +95,8 @@ class BaselineSearch:
             raise CustomException(e, sys)
 
 
+
+
 if __name__=="__main__":
     from ppit.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
@@ -77,7 +105,7 @@ if __name__=="__main__":
 
     data = data_loader()
     X_train, X_test, y_train, y_test = train_test_split(*data)
-    model = CNN("../../config/model_params_example.yml")
+    model = CNN("../../config/model_CNN_example.yml")
     model.build()
 
     model.debug_compile_fit(X_train, X_test, y_train, y_test)

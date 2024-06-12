@@ -495,7 +495,7 @@ class CNN():
 
 
 if __name__ == "__main__":
-    model = CNN("../../../config/model_params_example.yml")
+    model = CNN("../../../config/model_CNN_example.yml")
     model.build()
     model.debug_compile_fit()
     # model.compile()

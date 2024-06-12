@@ -36,7 +36,7 @@ class DataLoader():
         try:
             inputs, outputs = self.load_train_file(self.data)
             logging.info(f"generate X and y with data shape of {inputs.shape}, {outputs.shape}")
-            return inputs, outputs
+            return (inputs, outputs)
         except Exception as e:
             raise CustomException(e, sys)
 
@@ -249,5 +249,5 @@ class DataLoader():
 
 if __name__ == "__main__":
     data_loader = DataLoader("../../../data/vertexAI_PPIT_data.csv")
-    data = data_loader()
-    print(np.max(data[0]), np.min(data[0]), np.max(data[1]), np.min(data[1]))
+    input, output = data_loader()
+    print(np.max(input), np.min(input), np.max(output), np.min(output))

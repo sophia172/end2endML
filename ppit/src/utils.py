@@ -111,13 +111,21 @@ def _check_file_unique_exist(file_path):
         except:
             raise FileNotFoundError('Check the file path %s' % file_path)
 
+def scan_folder(folder_path, keyword="model"):
+    import glob
+    return glob.glob(os.path.join(folder_path, "*"+keyword+"*"))
+
+
+def basename(file_path):
+    return os.path.basename(file_path).split(".")[0]
+
 def load_config(configuration_path, folder="model"):
-    config_filename = os.path.basename(configuration_path).split(".")[0]
+    config_filename = basename(configuration_path)
     config = AttrDict.from_nested_dicts(reader(configuration_path))
-    dir = os.path.join(folder, config_filename)
-    os.makedirs(dir, exist_ok=True)
+    sub_folder_path = os.path.join(folder, config_filename)
+    os.makedirs(sub_folder_path, exist_ok=True)
     logging.info(f"Creating {folder} folder {config_filename}")
-    return (config_filename, config, dir)
+    return (config_filename, config, sub_folder_path)
 
 
 def evaluate_models(X_train, X_test, y_train, y_test, models={}, metric=r2_score):

@@ -111,7 +111,7 @@ class DataProcessor:
 
             self.update_link_limit(data['keypoint'])
             logging.info("Changed link_limit")
-            writer(data, os.path.join(ROOT, 'data', file_name + '.p'))
+            writer(data, os.path.join('data', file_name + '.p'))
         return os.path.join('data', '*.p')
 
     def update_link_limit(self, data):

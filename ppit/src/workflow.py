@@ -6,7 +6,7 @@ from ppit.src.logger import logging
 import sys
 from ppit.src.components.data_transformation import DataProcessor
 from ppit.src.components.data_ingestion import DataLoader
-from ppit.src.components.model_trainer import BaselineSearch
+from ppit.src.components.model_trainer import BaselineSearch, ModelTrainer
 from ppit.src.components.models import CNN
 from ppit.src.utils import none_or_str
 
@@ -103,17 +103,11 @@ def cli():
         raise CustomException(e, sys)
 
     try:
-        model = CNN("config/model_params_example.yml")
-        model.build()
-        # model.debug_compile_fit(X_train, X_test, y_train, y_test)
-        model.compile()
-        model.fit(X_train[:256], X_test[:256], y_train[:256], y_test[:256])
-        model.save()
+        trainer = ModelTrainer("config")
+        trainer(X_train, X_test, y_train, y_test)
         logging.info("Finished training pipeline")
     except Exception as e:
         raise CustomException(e, sys)
-
-
 
 
 
