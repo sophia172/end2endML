@@ -20,8 +20,8 @@ MODEL = {
     }
 
 class ModelTrainer:
-    def __init__(self, config_folder):
-        model_config_files = scan_folder(config_folder)
+    def __init__(self, config_path):
+        model_config_files = scan_folder(config_path)
         self.model_setup = collections.defaultdict(dict)
         for config_file in model_config_files:
             config_filename = basename(config_file)
@@ -33,7 +33,7 @@ class ModelTrainer:
 
 
     def check_model_configuration_name(self, filename):
-        definition, model, id = os.path.splitext(filename)[0].split('_')
+        definition, model, id = filename.split('_')
         if definition == "model":
             return model+id, MODEL[model]
         else:

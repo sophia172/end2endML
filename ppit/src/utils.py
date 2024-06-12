@@ -111,9 +111,12 @@ def _check_file_unique_exist(file_path):
         except:
             raise FileNotFoundError('Check the file path %s' % file_path)
 
-def scan_folder(folder_path, keyword="model"):
-    import glob
-    return glob.glob(os.path.join(folder_path, "*"+keyword+"*"))
+def scan_folder(path, keyword="model"):
+    if os.path.isdir(path):
+        import glob
+        return glob.glob(os.path.join(path, "*"+keyword+"*"))
+    else:
+        return [path]
 
 
 def basename(file_path):
