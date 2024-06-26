@@ -84,10 +84,10 @@ def cli():
         logging.info(f"Clean data path located: {data_path}")
 
         data_loader = DataLoader(data_path)
-        data = data_loader()
+        data = data_loader(input_shape=(3, 16, 24))
 
         from sklearn.model_selection import train_test_split
-        X_train, X_test, y_train, y_test = train_test_split(*data)
+        X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
 
     try:
         if baseline_search:

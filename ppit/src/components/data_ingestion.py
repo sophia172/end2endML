@@ -32,9 +32,9 @@ class DataLoader():
     def __init__(self, data_path, ):
         self.data: pd.DataFrame = reader(data_path)
         logging.info(f"Data Preview \n {self.data.head()}" )
-    def __call__(self):
+    def __call__(self, input_shape=(10, 13, 24)):
         try:
-            inputs, outputs = self.load_train_file(self.data)
+            inputs, outputs = self.load_train_file(self.data, input_shape=input_shape)
             logging.info(f"generate X and y with data shape of {inputs.shape}, {outputs.shape}")
             return (inputs, outputs)
         except Exception as e:
@@ -160,7 +160,20 @@ class DataLoader():
         # layout output data
         output_data = keypoint_data[input_shape[0] - 1:]
 
-        return input_data, output_data
+        return self.pad_data(input_data, input_shape), output_data
+
+    def pad_data(self, input_data, target_shape):
+        """pad data with 0 until it achieves target shape"""
+        input_data_shape = input_data.shape[1:]
+        if input_data_shape == target_shape:
+            return input_data
+        else:
+            pad_shape = np.array(target_shape) - np.array(input_data_shape)
+            return np.pad(input_data, ((0, 0),
+                                       (0, pad_shape[0]),
+                                       (0, pad_shape[1]),
+                                       (0, pad_shape[2])),
+                                       'constant', constant_values=0)
 
     def restack_electrode_data(self, pressure, location):
         frame_data = np.zeros((13, 24))

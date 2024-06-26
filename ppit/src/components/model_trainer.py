@@ -12,15 +12,17 @@ from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
 from sklearn.metrics import r2_score
 from ppit.src.components.models import CNN
+from ppit.src.components.vit import vit
 
 
 MODEL = {
             'CNN': CNN,
-
+            'ViT': vit
     }
 
 class ModelTrainer:
     def __init__(self, config_path):
+
         model_config_files = scan_folder(config_path)
         self.model_setup = collections.defaultdict(dict)
         for config_file in model_config_files:
@@ -45,7 +47,6 @@ class ModelTrainer:
             for model_name in self.model_setup:
                 model = self.model_setup[model_name]["model"](self.model_setup[model_name]["config_file"])
                 model.build()
-                model.compile()
                 model.fit(X_train, X_test, y_train, y_test)
                 model.save()
                 logging.info(f"Finished training pipeline for model {model_name}")

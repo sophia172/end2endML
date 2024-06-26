@@ -1,1 +1,3 @@
 pyyaml
+timm
+torch
