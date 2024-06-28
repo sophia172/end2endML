@@ -78,9 +78,8 @@ class BaselineSearch:
                 writer(model, os.path.join(self.save_path, name + '.p'))
                 logging.info(f"Finished training and testing model {name} with train score {train_model_score} \
                 and test score {test_model_score}")
-            except CustomException as e:
-                logging.error(e)
-                raise CustomException(e, sys)
+            except:
+                continue
         return report, trained_model
 
     def __call__(self, X_train, X_test,  y_train, y_test):
