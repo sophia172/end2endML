@@ -1,3 +1,4 @@
 pyyaml
 timm
 torch
+vit-pytorch

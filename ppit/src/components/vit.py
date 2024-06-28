@@ -3,7 +3,7 @@ import random
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 import sys
-# from vit_pytorch import ViT
+from vit_pytorch import ViT
 from ppit.src.utils import load_config, none_or_str, has_nan, writer, reader
 import torch
 class vit():
