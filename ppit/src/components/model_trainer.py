@@ -2,7 +2,7 @@ import collections
 import sys
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
-from ppit.src.utils import writer, evaluate_models, scan_folder, basename
+from ppit.src.utils import writer, scan_folder, basename
 import os
 from sklearn.ensemble import (
     RandomForestRegressor,
