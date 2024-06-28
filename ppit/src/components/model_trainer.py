@@ -61,12 +61,13 @@ class BaselineSearch:
         os.makedirs(self.save_path, exist_ok=True)
 
     def evaluate_models(self, X_train, X_test, y_train, y_test, models={}, metric=r2_score):
-        try:
-            report = {}
-            trained_model = {}
 
-            for name, model in models.items():
-                logging.info(f"Started training and testing model {name}")
+        report = {}
+        trained_model = {}
+
+        for name, model in models.items():
+            logging.info(f"Started training and testing model {name}")
+            try:
                 model.fit(X_train, y_train)
                 y_train_pred = model.predict(X_train)
                 y_test_pred = model.predict(X_test)
@@ -77,11 +78,11 @@ class BaselineSearch:
                 writer(model, os.path.join(self.save_path, name + '.p'))
                 logging.info(f"Finished training and testing model {name} with train score {train_model_score} \
                 and test score {test_model_score}")
-            return report, trained_model
+            except CustomException as e:
+                logging.error(e)
+                raise CustomException(e, sys)
+        return report, trained_model
 
-        except CustomException as e:
-            logging.error(e)
-            raise CustomException(e, sys)
     def __call__(self, X_train, X_test,  y_train, y_test):
         try:
             logging.info(f"Import data")
