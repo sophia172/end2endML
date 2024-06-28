@@ -60,22 +60,44 @@ class BaselineSearch:
         self.save_path = os.path.join("model", "baseline")
         os.makedirs(self.save_path, exist_ok=True)
 
+    def evaluate_models(self, X_train, X_test, y_train, y_test, models={}, metric=r2_score):
+        try:
+            report = {}
+            trained_model = {}
+
+            for name, model in models.items():
+                logging.info(f"Started training and testing model {name}")
+                model.fit(X_train, y_train)
+                y_train_pred = model.predict(X_train)
+                y_test_pred = model.predict(X_test)
+                train_model_score = metric(y_train, y_train_pred)
+                test_model_score = metric(y_test, y_test_pred)
+                report[name] = test_model_score
+                trained_model[name] = model
+                writer(model, os.path.join(self.save_path, name + '.p'))
+                logging.info(f"Finished training and testing model {name} with train score {train_model_score} \
+                and test score {test_model_score}")
+            return report, trained_model
+
+        except CustomException as e:
+            logging.error(e)
+            raise CustomException(e, sys)
     def __call__(self, X_train, X_test,  y_train, y_test):
         try:
             logging.info(f"Import data")
             models = {
+                "Linear Regression": LinearRegression(),
+                "SVR": SVR(),
                 "Random Forest": RandomForestRegressor(),
                 "Decision Tree": DecisionTreeRegressor(),
-                "SVR": SVR(),
                 # "Gradient Boosting": GradientBoostingRegressor(),
-                "Linear Regression": LinearRegression(),
                 "XGBClassifier": XGBRegressor(),
                 # "CatBoosting Classifier": CatBoostRegressor(verbose=False),
                 # "AdaBoost Classifier": AdaBoostRegressor(),
             }
 
 
-            model_report, model_obj = evaluate_models(X_train, X_test, y_train, y_test, models=models)
+            model_report, model_obj = self.evaluate_models(X_train, X_test, y_train, y_test, models=models)
             logging.info(f"Finished training models")
             ## Get best model score from dict
             best_model_score = max(sorted(model_report.values()))

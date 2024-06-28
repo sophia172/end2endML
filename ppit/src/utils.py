@@ -131,28 +131,6 @@ def load_config(configuration_path, folder="model"):
     return (config_filename, config, sub_folder_path)
 
 
-def evaluate_models(X_train, X_test, y_train, y_test, models={}, metric=r2_score):
-    try:
-        report = {}
-        trained_model = {}
-
-        for name, model in models.items():
-            logging.info(f"Started training and testing model {name}")
-            model.fit(X_train, y_train)
-            y_train_pred = model.predict(X_train)
-            y_test_pred = model.predict(X_test)
-            train_model_score = metric(y_train, y_train_pred)
-            test_model_score = metric(y_test, y_test_pred)
-            report[name] = test_model_score
-            trained_model[name] = model
-            logging.info(f"Finished training and testing model {name} with train score {train_model_score} \
-            and test score {test_model_score}")
-        return report, trained_model
-
-    except CustomException as e:
-        logging.error(e)
-        raise CustomException(e, sys)
-
 def has_nan(data):
     if isinstance(data, list):
         for item in data:
