@@ -10,6 +10,7 @@ from sklearn.ensemble import (
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
+from sklearn.svm import SVR
 from sklearn.metrics import r2_score
 from ppit.src.components.models import CNN
 from ppit.src.components.vit import vit
@@ -65,6 +66,7 @@ class BaselineSearch:
             models = {
                 "Random Forest": RandomForestRegressor(),
                 "Decision Tree": DecisionTreeRegressor(),
+                "SVR": SVR(),
                 # "Gradient Boosting": GradientBoostingRegressor(),
                 "Linear Regression": LinearRegression(),
                 "XGBClassifier": XGBRegressor(),
