@@ -9,8 +9,18 @@ from dataclasses import dataclass
 from sklearn.metrics import r2_score
 import pandas as pd
 import numpy as np
+from functools import wraps
+import time
 
-
+def timing(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        start_time = time.time()
+        result = func(self, *args, **kwargs)
+        end_time = time.time()
+        print(f"{func.__name__} took {end_time - start_time:.4f} seconds")
+        return result
+    return wrapper
 @dataclass
 class AttrDict(dict):
     """
@@ -40,6 +50,7 @@ def WriteYAML(data, file_path):
         yaml.dump(data, file)
     return
 
+import time
 
 def writer(
         result: dict, output_path: str
