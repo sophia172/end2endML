@@ -9,11 +9,12 @@ from scipy.io import loadmat
 from dataclasses import dataclass
 from ppit.src.utils import writer
 import glob
+
+
 @dataclass
 # class DataTransformationConfig:
 #     # TODO
 #     preprocessor_obj_file_path: str = os.path.join()
-
 
 # class DataTransformation:
 #     def __init__(self):
@@ -135,7 +136,6 @@ class DataProcessor:
 
         return
 
-
     def locate_file_info(self):
         """
             Find the mat recording file, keypoint matlab recording file for each sample
@@ -179,37 +179,37 @@ class DataProcessor:
         In each sample, load the mat corner coordinates.
         """
 
-        processor = ReadMat(sample_info['mat_recording'],
-                            loc_ele_map=self.config['location_ele_map'],
-                            pressure_ele_map=self.config['pressure_ele_map'],
-                            ui_grid=self.config['ui_grid'])
-        sensor_data = processor.extract_sensor_data()
+        mat_processor = ReadMat(sample_info['mat_recording'],
+                                loc_ele_map=self.config['location_ele_map'],
+                                pressure_ele_map=self.config['pressure_ele_map'],
+                                ui_grid=self.config['ui_grid'])
+        sensor_data = mat_processor.extract_sensor_data()
         export_path = os.path.join('data', 'sensor', file_name)
-        processor.save_data(sensor_data, export_path)
+        mat_processor.save_data(sensor_data, export_path)
         self.df_file['sensor'] = export_path
 
-        pressure_data = processor.extract_pressure_data()
+        pressure_data = mat_processor.extract_pressure_data()
 
         export_path = os.path.join('data', 'pressure_map', file_name)
-        processor.save_data(pressure_data, export_path)
+        mat_processor.save_data(pressure_data, export_path)
         self.df_file['pressure_map'] = export_path
         return
 
     def find_keypoint_data(self, sample_info, file_name):
-        data_processor = ReadKeypoint(sample_info['keypoint_recording'],
-                                      joints=self.joints,
-                                      marker_set_path=sample_info['marker_set_path'],
-                                      merge_point_label=self.config['merge_point'],
-                                      axis_range=self.config['axis_range'])
-        centre = data_processor.mat_centre()
-        theta = data_processor.rotated_angle()
-        data = data_processor.skeleton_data()
-        data = data_processor.axis_transform(data, centre, theta)
-        data = data_processor.normalise(data)
+        mocap_processor = ReadMoCap(sample_info['keypoint_recording'],
+                                    joints=self.joints,
+                                    marker_set_path=sample_info['marker_set_path'],
+                                    merge_point_label=self.config['merge_point'],
+                                    axis_range=self.config['axis_range'])
+        centre = mocap_processor.mat_centre()
+        theta = mocap_processor.rotated_angle()
+        data = mocap_processor.skeleton_data()
+        data = mocap_processor.axis_transform(data, centre, theta)
+        data = mocap_processor.normalise(data)
         # data = data_processor.cut_data(data, percentage=0.5)
 
         export_path = os.path.join('data', 'keypoint', file_name)
-        data_processor.save_data(data, export_path)
+        mocap_processor.save_data(data, export_path)
 
         self.df_file['keypoint'] = export_path
         return
@@ -331,6 +331,7 @@ class ReadMat():
         """
         Accept numpy array, add Gaussian noise
         """
+        assert type(data) == np.ndarray, "Please check input data format as numpy array"
         data_range = np.max(data) - np.min(data)
         noise = np.random.normal(0, data_range * ratio, data.shape)
         return data + noise
@@ -351,10 +352,12 @@ class ReadMat():
         If it is tuple, it is electrode data.
         """
         if type(data) == tuple:
+            logging.info("Save sensor data in both location and pressure")
             locaction_df = self._array2df(data[0]).add_suffix('_location')
             pressure_df = self._array2df(data[1]).add_suffix('_pressure')
             df = pd.concat([locaction_df, pressure_df], axis=1)
         else:
+            logging.info("Save pressure map UI grid data")
             df = self._array2df(data).add_suffix('_pressure_map')
 
         if os.path.exists(os.path.dirname(export_path)):
@@ -364,7 +367,8 @@ class ReadMat():
 
         df.to_csv(export_path)
 
-class ReadKeypoint():
+
+class ReadMoCap():
     def __init__(self, file_path, joints=None, marker_set_path=None, merge_point_label=None, axis_range=32767):
         self.file_path = file_path
         self.axis_range = axis_range
@@ -652,6 +656,7 @@ class ReadKeypoint():
         lower_bound = np.nanmin(np.nanmin(data, axis=-1), axis=0)
         print((lower_bound, upper_bound))
 
+
 def reformat_file(df):
     if 'row' in df.columns[-2]:  # I chose a random column name here to check which file it is.
         print(' This file contains sensor data')
@@ -659,6 +664,7 @@ def reformat_file(df):
     else:
         print(' This file contains keypoint data')
         return reformat_keypoint(df)
+
 
 def reformat_pressure_map(df):
     """
@@ -725,6 +731,7 @@ def reformat_keypoint(df):
     # The shape here is (time frames, joints, xyz)
     return data
 
+
 class read_csv():
 
     def __init__(self):
@@ -739,6 +746,7 @@ class read_csv():
             logging.info("move_set list: " + ",".join(move_set))
             raise CustomException(e, sys)
         return reformat_file(self.df)
+
 
 class AlignData:
     def __init__(self, file_dict):
@@ -779,6 +787,7 @@ class AlignData:
             raise CustomException(e, sys)
         return self.data
 
+
 class data_augmentation():
     def __init__(self):
         # TODO
@@ -801,6 +810,7 @@ class data_augmentation():
         # TODO
         return
 
+
 class keypoint_to_heatmap():
     """
     It creates a heatmap (frame, joints, 3Dheatmap_resolution) from keypoint (frame, joints, xyz)
@@ -808,11 +818,11 @@ class keypoint_to_heatmap():
     xyz_range is the maximum value in the axis range (positive number only). It goes from -32767 to +32767 by default
     """
 
-    def __init__(self,  heatmap_shape=[20,20,18], axis_range=32767):
+    def __init__(self, heatmap_shape=[20, 20, 18], axis_range=32767):
         # heatmap_shape should be numpy array
         self.heatmap_shape = np.array(heatmap_shape)
         y, x, z = [np.linspace(0., 1., int(heatmap_shape[i])) for i in range(3)]
-        self.pos_xyz = np.meshgrid(x,y,z)
+        self.pos_xyz = np.meshgrid(x, y, z)
         self.axis_range = axis_range
 
     def __call__(self, keypoints):
@@ -839,7 +849,7 @@ class keypoint_to_heatmap():
         return heatmap
 
     def gaussian(self, dis, mu, sigma):
-        return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-(dis - mu)**2 / (2 * sigma**2))
+        return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-(dis - mu) ** 2 / (2 * sigma ** 2))
 
     def softmax(self, data):
         return np.exp(data) / np.sum(np.exp(data))
@@ -854,6 +864,7 @@ class keypoint_to_heatmap():
         data = np.divide(data.astype(int), heatmap_shape - 1)
         return data
 
+
 class heatmap_to_keypoint():
     """
     It creates  a keypoint (frame, joints, xyz) from a heatmap (frame, joints, 3Dheatmap_resolution)
@@ -864,7 +875,7 @@ class heatmap_to_keypoint():
     def __init__(self, axis_range=32767):
         self.axis_range = axis_range
 
-    def __call__(self, heatmap, heatmap_shape=[20,20,18]):
+    def __call__(self, heatmap, heatmap_shape=[20, 20, 18]):
         """
         heatmap is numpy array, it has a shape of (frame, joints, 3Dheatmap_resolution_in_xyz_axis)
         return data of size (frame, joints, xyz), data range is [0,1] before reverse_normalise,
