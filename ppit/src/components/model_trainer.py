@@ -107,7 +107,7 @@ class BaselineSearch:
             baseline_model: object = model_obj[baseline_name]
 
             if best_model_score < 0.6:
-                raise CustomException("No best model found")#
+                logging.info(f"No best model found")#
             writer(baseline_model, os.path.join(self.save_path, baseline_name + '.p'))
 
             r2_square = r2_score(y_test, baseline_model.predict(X_test))
