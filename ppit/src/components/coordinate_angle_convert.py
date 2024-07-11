@@ -32,7 +32,7 @@ class Converter():
         :param joint_to_index: Dictionary mapping joints to their corresponding indices.
         """
         self.joint_to_index = joint_to_index
-        self.index_to_joint = {idx: joint for idx, joint in joint_to_index}
+        self.index_to_joint = {idx: joint for idx, joint in joint_to_index.items()}
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
