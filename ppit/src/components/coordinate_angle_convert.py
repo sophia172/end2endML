@@ -19,8 +19,8 @@ DEFAULT_SKELETON = {'hips': [[-111, 9557, 15726]],
                     'rightelbow': [-5253,	-9424,	21924],
                     'rightknee': [[-2358,	-8777,	8458]],
                     'leftknee':[[1997,	-8607,	8724]],
-                    'rightfoot':[[-2491,	-7293,	770]],
-                    'leftfoot':[[2268,	-7095,	686]]
+                    'rightankle':[[-2491,	-7293,	770]],
+                    'leftankle':[[2268,	-7095,	686]]
                     }
 
 class Converter():
@@ -32,16 +32,16 @@ class Converter():
         :param joint_to_index: Dictionary mapping joints to their corresponding indices.
         """
         self.joint_to_index = joint_to_index
-        self.index_to_joint = {idx: joint for idx, joint in joint_to_index.items()}
+        self.index_to_joint = {idx: joint for joint, idx in joint_to_index.items()}
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
         hierarchy = {'hips': [],
-                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftfoot': ['leftknee', 'lefthip', 'hips'],
+                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftankle': ['leftknee', 'lefthip', 'hips'],
                      'righthip': ['hips'], 'rightknee': ['righthip', 'hips'],
-                     'rightfoot': ['rightknee', 'righthip', 'hips'],
-                     'righttoe': ['rightfoot', 'rightknee', 'righthip', 'hips'],
-                     'lefttoe': ['leftfoot', 'leftknee', 'lefthip', 'hips'],
+                     'rightankle': ['rightknee', 'righthip', 'hips'],
+                     'righttoe': ['rightankle', 'rightknee', 'righthip', 'hips'],
+                     'lefttoe': ['leftankle', 'leftknee', 'lefthip', 'hips'],
                      'neck': ['hips'],
                      'leftshoulder': ['neck', 'hips'], 'leftelbow': ['leftshoulder', 'neck', 'hips'],
                      'leftwrist': ['leftelbow', 'leftshoulder', 'neck', 'hips'],
@@ -51,7 +51,6 @@ class Converter():
 
         self.kpts['hierarchy'] = hierarchy
         self.kpts['root_joint'] = 'hips'
-
         self.get_bone_lengths(default=True)
         self.get_base_skeleton()
         return
@@ -94,19 +93,28 @@ class Converter():
 
 
 
-    def angle2coordinate(self, angles_array: np.ndarray, root_position:np.ndarray, root_rotation:np.ndarray) -> np.ndarray:
+    def angle2coordinate(self, angles_array: np.ndarray) -> np.ndarray:
         assert angles_array.shape[-1] == 3, ("Angle array should have format in (x,y,z) axis, data shape "
                                                    "should be (frames, joint number, 3)")
 
-
+        # Assign angle array data to dictionary
+        for idx, joint in self.index_to_joint.items():
+            self.kpts[joint + '_angles'] = angles_array[:, idx-1, :]
         coordinates_dict = collections.defaultdict(list)
-        for framenum in range(self.kpts['hips'].shape[0]):
+
+        self.kpts['hips'] = np.zeros(self.kpts['leftankle_angles'].shape) # change to hips rotation angle later
+
+        for framenum in range(self.kpts['leftankle_angles'].shape[0]):
 
             # get a dictionary containing the rotations for the current frame
             frame_rotations = {}
-            html_data_frame = []
+
             for joint in self.kpts['joints']:
                 frame_rotations[joint] = self.kpts[joint + '_angles'][framenum]
+
+            frame_rotations['hips'] = np.zeros(frame_rotations[joint].shape)
+            frame_rotations['neck'] = np.zeros(frame_rotations[joint].shape)
+
             # for plotting
             for _j in self.kpts['joints']:
                 if _j == 'hips': continue
@@ -186,7 +194,7 @@ class Converter():
         """
 
         bone_lengths = {}
-        for joint in self.kpts['joints']:
+        for joint in DEFAULT_SKELETON:
             if joint == 'hips': continue
             parent = self.kpts['hierarchy'][joint][0]
 
@@ -197,7 +205,7 @@ class Converter():
                 joint_kpts = self.kpts[joint]
                 parent_kpts = self.kpts[parent]
 
-            _bone = joint_kpts - parent_kpts
+            _bone = np.subtract(joint_kpts, parent_kpts)
             _bone_lengths = np.sqrt(np.sum(np.square(_bone), axis=-1))
 
             _bone_length = np.median(_bone_lengths)
@@ -215,12 +223,12 @@ class Converter():
         offset_directions = {}
         offset_directions['lefthip'] = np.array([-1, 0, 0])
         offset_directions['leftknee'] = np.array([0, -1, 0])
-        offset_directions['leftfoot'] = np.array([0, -1, 0])
+        offset_directions['leftankle'] = np.array([0, -1, 0])
         offset_directions['lefttoe'] = np.array([0, -1, 0])
 
         offset_directions['righthip'] = np.array([1, 0, 0])
         offset_directions['rightknee'] = np.array([0, -1, 0])
-        offset_directions['rightfoot'] = np.array([0, -1, 0])
+        offset_directions['rightankle'] = np.array([0, -1, 0])
         offset_directions['righttoe'] = np.array([0, -1, 0])
 
         offset_directions['neck'] = np.array([0, 1, 0])
@@ -247,7 +255,7 @@ class Converter():
 
         _set_length('hip')
         _set_length('knee')
-        _set_length('foot')
+        _set_length('ankle')
         _set_length('toe')
         _set_length('shoulder')
         _set_length('elbow')
@@ -262,17 +270,18 @@ class Converter():
     def add_hips_and_neck(self):
         # we add two new keypoints which are the mid point between the hips and mid point between the shoulders
 
-        # add hips kpts
-        hips = (self.kpts['lefthip'] + self.kpts['righthip']) / 2
-        self.kpts['hips'] = hips
-        self.kpts['joints'].append('hips')
+        if 'lefthip' in self.kpts.keys() and 'righthip' in self.kpts.keys():
+            # add hips kpts
+            hips = (self.kpts['lefthip'] + self.kpts['righthip']) / 2
+            self.kpts['hips'] = hips
+            self.kpts['joints'].append('hips')
 
-        # add neck self.kpts
-        neck = (self.kpts['leftshoulder'] + self.kpts['rightshoulder']) / 2
-        self.kpts['neck'] = neck
-        self.kpts['joints'].append('neck')
-        # define the hierarchy of the joints
-
+        if 'leftshoulder' in self.kpts.keys() and 'rightshoulder' in self.kpts.keys():
+            # add neck self.kpts
+            neck = (self.kpts['leftshoulder'] + self.kpts['rightshoulder']) / 2
+            self.kpts['neck'] = neck
+            self.kpts['joints'].append('neck')
+            # define the hierarchy of the joints
 
         return
 
@@ -438,3 +447,20 @@ def Decompose_R_ZXY(R):
     thetay = np.arctan2(-R[2,0], R[2,2])
     thetax = np.arctan2(R[2,1], np.sqrt(R[2,0]**2 + R[2,2]**2))
     return thetaz, thetay, thetax
+
+if __name__=="__main__":
+    from ppit.src.utils import reader
+    config = reader("../../../config/data_processor_example.yml")
+    joints_dict = {joint_name.lower().replace(" ",""): joint_index for joint_name, joint_index in config["joints"].items()}
+    joint_coords_converter = Converter(joints_dict)
+    data_path = '../../../data/vertexAI_PPIT_data.csv'
+    from ppit.src.components.data_ingestion import DataLoader
+    data_loader = DataLoader(data_path)
+    data = data_loader(input_shape=(3, 16, 24))
+    from sklearn.model_selection import train_test_split
+
+    X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
+
+    coords = joint_coords_converter.angle2coordinate(y_test)
+    print(coords.shape, coords[0])
+
