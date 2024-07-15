@@ -102,7 +102,7 @@ class Converter():
             self.kpts[joint + '_angles'] = angles_array[:, idx-1, :]
         coordinates_dict = collections.defaultdict(list)
 
-        self.kpts['hips'] = np.zeros(self.kpts['leftfoot_angles'].shape) # change to hips rotation angle later
+        self.kpts['hips'] = np.zeros(self.kpts['leftfoot_angles'].shape) # change to hips rotation angle later  TODO
 
         for framenum in range(self.kpts['leftfoot_angles'].shape[0]):
 
@@ -112,12 +112,11 @@ class Converter():
             for joint in self.kpts['joints']:
                 frame_rotations[joint] = self.kpts[joint + '_angles'][framenum]
 
-            frame_rotations['hips'] = np.zeros(frame_rotations[joint].shape)
-            frame_rotations['neck'] = np.zeros(frame_rotations[joint].shape)
-
             # for plotting
             for _j in self.kpts['joints']:
-                if _j == 'hips': continue
+                if _j == 'hips':
+                    coordinates_dict[_j].append( self.kpts['hips'][framenum])
+                    continue
 
                 # get hierarchy of how the joint connects back to root joint
                 hierarchy = self.kpts['hierarchy'][_j]
@@ -138,7 +137,6 @@ class Converter():
                 coordinates_dict[_j].append(r2)
         coordinates_array = [coordinates_dict[self.index_to_joint[idx]] for idx in
                         sorted(self.joint_to_index.values())]
-
         return np.swapaxes(coordinates_array, 0, 1)
 
     def get_rotation_chain(self, joint, hierarchy, frame_rotations):
@@ -449,9 +447,10 @@ def Decompose_R_ZXY(R):
     return thetaz, thetay, thetax
 
 if __name__=="__main__":
-    from ppit.src.utils import reader
-    config = reader("../../../config/data_processor_example.yml")
     from data_ingestion import JOINTS
+
+    from ppit.src.components.data_ingestion import DataLoader
+
     joints_dict = {joint: idx for idx, joint in enumerate(JOINTS)}
     joint_coords_converter = Converter(joints_dict)
     data_path = '../../../data/vertexAI_PPIT_data.csv'
@@ -461,7 +460,7 @@ if __name__=="__main__":
     from sklearn.model_selection import train_test_split
 
     X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
-
+    print(y_test.shape)
     coords = joint_coords_converter.angle2coordinate(y_test)
     print(coords.shape, coords[0])
 
