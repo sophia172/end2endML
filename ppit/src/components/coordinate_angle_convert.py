@@ -19,17 +19,19 @@ DEFAULT_SKELETON = {'hips': [[-111, 9557, 15726]],
                     'rightelbow': [-5253,	-9424,	21924],
                     'rightknee': [[-2358,	-8777,	8458]],
                     'leftknee':[[1997,	-8607,	8724]],
-                    'rightfoot':[[-2491,	-7293,	770]],
-                    'leftfoot':[[2268,	-7095,	686]]
+                    'rightankle':[[-2491,	-7293,	770]],
+                    'leftankle':[[2268,	-7095,	686]]
                     }
 
 class Converter():
 
-    def __init__(self, joint_to_index:dict):
+    def __init__(self, joint_to_index:dict=None):
         """
         Initializes the Converter with a mapping from joints to indices.
 
         :param joint_to_index: Dictionary mapping joints to their corresponding indices.
+        In the keypoint coordinates data file, joint index does not have neck and hips
+        In the keypoint rotatioin angle data file, joint index need to append 'hips' and 'neck' as the last two index
         """
         self.joint_to_index = joint_to_index
         self.index_to_joint = {idx: joint for joint, idx in joint_to_index.items()}
@@ -37,11 +39,11 @@ class Converter():
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
         hierarchy = {'hips': [],
-                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftfoot': ['leftknee', 'lefthip', 'hips'],
+                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftankle': ['leftknee', 'lefthip', 'hips'],
                      'righthip': ['hips'], 'rightknee': ['righthip', 'hips'],
-                     'rightfoot': ['rightknee', 'righthip', 'hips'],
-                     'righttoe': ['rightfoot', 'rightknee', 'righthip', 'hips'],
-                     'lefttoe': ['leftfoot', 'leftknee', 'lefthip', 'hips'],
+                     'rightankle': ['rightknee', 'righthip', 'hips'],
+                     'righttoe': ['rightankle', 'rightknee', 'righthip', 'hips'],
+                     'lefttoe': ['leftankle', 'leftknee', 'lefthip', 'hips'],
                      'neck': ['hips'],
                      'leftshoulder': ['neck', 'hips'], 'leftelbow': ['leftshoulder', 'neck', 'hips'],
                      'leftwrist': ['leftelbow', 'leftshoulder', 'neck', 'hips'],
@@ -70,12 +72,12 @@ class Converter():
 
 
         #################### Turn array to dict
-        for key, k_index in self.joint_to_index.items():
-            self.kpts[key] = coordinates_array[:, k_index]
+        for joint, idx in self.joint_to_index.items():
+            self.kpts[joint] = coordinates_array[:, idx-1]
         ##############################
 
 
-        self.add_hips_and_neck(self.kpts)
+        self.add_hips_and_neck()
         self.median_filter()
 
         # Normalise the skeleton, optional
@@ -83,11 +85,12 @@ class Converter():
         # self.get_base_skeleton(filtered_kpts)
         
 
-        angles_dict = self.calculate_joint_angles()
+        self.calculate_joint_angles()
 
         ######################Turn dict to array
-        angles_array = [angles_dict[self.index_to_joint[idx] + '_angles'] for idx in sorted(self.joint_to_index.values())]
-
+        angles_array = [self.kpts[self.index_to_joint[idx] + '_angles'] for idx in sorted(self.joint_to_index.values())]
+        angles_array.append(self.kpts['hips_angles'])
+        angles_array.append(self.kpts['neck_angles'])
 
         return np.swapaxes(angles_array, 0, 1)
 
@@ -100,11 +103,20 @@ class Converter():
         # Assign angle array data to dictionary
         for idx, joint in self.index_to_joint.items():
             self.kpts[joint + '_angles'] = angles_array[:, idx-1, :]
+
+        # Add hips and neck data from the last two columns
+        self.kpts['hips_angles'] = angles_array[:, idx, :]
+        self.kpts['neck_angles'] = angles_array[:, idx+1, :]
+
+
         coordinates_dict = collections.defaultdict(list)
 
-        self.kpts['hips'] = np.zeros(self.kpts['leftfoot_angles'].shape) # change to hips rotation angle later  TODO
+        self.kpts['hips'] = np.ones(self.kpts['leftankle_angles'].shape) # change to hips rotation angle later  TODO
+        self.kpts['joints'] = list(self.index_to_joint.values())
+        self.kpts['joints'] += ['hips', 'neck']
 
-        for framenum in range(self.kpts['leftfoot_angles'].shape[0]):
+
+        for framenum in range(self.kpts['hips'].shape[0]):
 
             # get a dictionary containing the rotations for the current frame
             frame_rotations = {}
@@ -114,9 +126,7 @@ class Converter():
 
             # for plotting
             for _j in self.kpts['joints']:
-                if _j == 'hips':
-                    coordinates_dict[_j].append( self.kpts['hips'][framenum])
-                    continue
+                if _j == 'hips': continue
 
                 # get hierarchy of how the joint connects back to root joint
                 hierarchy = self.kpts['hierarchy'][_j]
@@ -135,6 +145,7 @@ class Converter():
                 # get rotation chain (first connecting joint, all parent, joint angles)
                 r2 = r1 + self.get_rotation_chain(hierarchy[0], hierarchy, frame_rotations) @ self.kpts['base_skeleton'][_j]
                 coordinates_dict[_j].append(r2)
+
         coordinates_array = [coordinates_dict[self.index_to_joint[idx]] for idx in
                         sorted(self.joint_to_index.values())]
         return np.swapaxes(coordinates_array, 0, 1)
@@ -176,12 +187,12 @@ class Converter():
             _r_angles = frame_rotations[parent_name]
             R = get_R_z(_r_angles[0]) @ get_R_x(_r_angles[1]) @ get_R_y(_r_angles[2])
             _invR = _invR @ R.T
-
         b = _invR @ (frame_pos[joint_name] - frame_pos[joints_hierarchy[joint_name][0]])
 
         _R = Get_R2(joints_offsets[joint_name], b)
         tz, ty, tx = Decompose_R_ZXY(_R)
         joint_rs = np.array([tz, tx, ty])
+        return joint_rs
 
     def get_bone_lengths(self, default=True):
 
@@ -221,12 +232,12 @@ class Converter():
         offset_directions = {}
         offset_directions['lefthip'] = np.array([-1, 0, 0])
         offset_directions['leftknee'] = np.array([0, -1, 0])
-        offset_directions['leftfoot'] = np.array([0, -1, 0])
+        offset_directions['leftankle'] = np.array([0, -1, 0])
         offset_directions['lefttoe'] = np.array([0, -1, 0])
 
         offset_directions['righthip'] = np.array([1, 0, 0])
         offset_directions['rightknee'] = np.array([0, -1, 0])
-        offset_directions['rightfoot'] = np.array([0, -1, 0])
+        offset_directions['rightankle'] = np.array([0, -1, 0])
         offset_directions['righttoe'] = np.array([0, -1, 0])
 
         offset_directions['neck'] = np.array([0, 1, 0])
@@ -253,7 +264,7 @@ class Converter():
 
         _set_length('hip')
         _set_length('knee')
-        _set_length('foot')
+        _set_length('ankle')
         _set_length('toe')
         _set_length('shoulder')
         _set_length('elbow')
@@ -273,14 +284,12 @@ class Converter():
             hips = (self.kpts['lefthip'] + self.kpts['righthip']) / 2
             self.kpts['hips'] = hips
             self.kpts['joints'].append('hips')
-
         if 'leftshoulder' in self.kpts.keys() and 'rightshoulder' in self.kpts.keys():
             # add neck self.kpts
             neck = (self.kpts['leftshoulder'] + self.kpts['rightshoulder']) / 2
             self.kpts['neck'] = neck
             self.kpts['joints'].append('neck')
             # define the hierarchy of the joints
-
         return
 
     # calculate the rotation of the root joint with respect to the world coordinates
@@ -298,7 +307,7 @@ class Converter():
 
         # Make the rotation matrix
         C = np.array([root_u, root_v, root_w]).T
-        thetaz, thetay, thetax = utils.Decompose_R_ZYX(C)
+        thetaz, thetay, thetax = Decompose_R_ZYX(C)
 
         root_rotation = np.array([thetaz, thetax, thetay])
 
@@ -450,17 +459,33 @@ if __name__=="__main__":
     from data_ingestion import JOINTS
 
     from ppit.src.components.data_ingestion import DataLoader
+    import sys
 
-    joints_dict = {joint: idx for idx, joint in enumerate(JOINTS)}
+
+    from ppit.src.utils import reader
+    data = reader("../../../data/20230626_1_set_1_2.p")
+    print(data['keypoint'].shape)
+
+    from ppit.src.utils import reader
+    config = reader("../../../config/data_processor_example.yml")
+    joints_dict = {joint_name.lower().replace(" ", ""): joint_index for joint_name, joint_index in
+                   config["joints"].items()}
+
     joint_coords_converter = Converter(joints_dict)
-    data_path = '../../../data/vertexAI_PPIT_data.csv'
-    from ppit.src.components.data_ingestion import DataLoader
-    data_loader = DataLoader(data_path)
-    data = data_loader(input_shape=(3, 16, 24))
-    from sklearn.model_selection import train_test_split
+    angle_data = joint_coords_converter.coordinate2angle(data['keypoint'])
+    print(joint_coords_converter.kpts.keys())
+    print(joint_coords_converter.kpts["leftshoulder_angles"][:5])
 
-    X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
-    print(y_test.shape)
-    coords = joint_coords_converter.angle2coordinate(y_test)
-    print(coords.shape, coords[0])
+    # data_path = '../../../data/vertexAI_PPIT_data.csv'
+    # from ppit.src.components.data_ingestion import DataLoader
+    # data_loader = DataLoader(data_path)
+    # data = data_loader(input_shape=(3, 16, 24))
+    # from sklearn.model_selection import train_test_split
+    #
+    # X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
+    # print(y_test.shape)
+    joint_coords_converter = Converter(joints_dict)
+    coords = joint_coords_converter.angle2coordinate(angle_data)
+    print(coords[:5, 0, :])
+
 

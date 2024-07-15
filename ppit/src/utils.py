@@ -67,6 +67,7 @@ def writer(
 def reader(
         input_path: str
 ) -> Callable[[str], None]:
+    input_path = os.path.normpath(input_path)
     input_format = os.path.basename(input_path).split(".")[-1]
     readers = {
         "p": ReadPickle,
