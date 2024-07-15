@@ -19,8 +19,8 @@ DEFAULT_SKELETON = {'hips': [[-111, 9557, 15726]],
                     'rightelbow': [-5253,	-9424,	21924],
                     'rightknee': [[-2358,	-8777,	8458]],
                     'leftknee':[[1997,	-8607,	8724]],
-                    'rightankle':[[-2491,	-7293,	770]],
-                    'leftankle':[[2268,	-7095,	686]]
+                    'rightfoot':[[-2491,	-7293,	770]],
+                    'leftfoot':[[2268,	-7095,	686]]
                     }
 
 class Converter():
@@ -37,11 +37,11 @@ class Converter():
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
         hierarchy = {'hips': [],
-                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftankle': ['leftknee', 'lefthip', 'hips'],
+                     'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftfoot': ['leftknee', 'lefthip', 'hips'],
                      'righthip': ['hips'], 'rightknee': ['righthip', 'hips'],
-                     'rightankle': ['rightknee', 'righthip', 'hips'],
-                     'righttoe': ['rightankle', 'rightknee', 'righthip', 'hips'],
-                     'lefttoe': ['leftankle', 'leftknee', 'lefthip', 'hips'],
+                     'rightfoot': ['rightknee', 'righthip', 'hips'],
+                     'righttoe': ['rightfoot', 'rightknee', 'righthip', 'hips'],
+                     'lefttoe': ['leftfoot', 'leftknee', 'lefthip', 'hips'],
                      'neck': ['hips'],
                      'leftshoulder': ['neck', 'hips'], 'leftelbow': ['leftshoulder', 'neck', 'hips'],
                      'leftwrist': ['leftelbow', 'leftshoulder', 'neck', 'hips'],
@@ -102,9 +102,9 @@ class Converter():
             self.kpts[joint + '_angles'] = angles_array[:, idx-1, :]
         coordinates_dict = collections.defaultdict(list)
 
-        self.kpts['hips'] = np.zeros(self.kpts['leftankle_angles'].shape) # change to hips rotation angle later
+        self.kpts['hips'] = np.zeros(self.kpts['leftfoot_angles'].shape) # change to hips rotation angle later
 
-        for framenum in range(self.kpts['leftankle_angles'].shape[0]):
+        for framenum in range(self.kpts['leftfoot_angles'].shape[0]):
 
             # get a dictionary containing the rotations for the current frame
             frame_rotations = {}
@@ -223,12 +223,12 @@ class Converter():
         offset_directions = {}
         offset_directions['lefthip'] = np.array([-1, 0, 0])
         offset_directions['leftknee'] = np.array([0, -1, 0])
-        offset_directions['leftankle'] = np.array([0, -1, 0])
+        offset_directions['leftfoot'] = np.array([0, -1, 0])
         offset_directions['lefttoe'] = np.array([0, -1, 0])
 
         offset_directions['righthip'] = np.array([1, 0, 0])
         offset_directions['rightknee'] = np.array([0, -1, 0])
-        offset_directions['rightankle'] = np.array([0, -1, 0])
+        offset_directions['rightfoot'] = np.array([0, -1, 0])
         offset_directions['righttoe'] = np.array([0, -1, 0])
 
         offset_directions['neck'] = np.array([0, 1, 0])
@@ -255,7 +255,7 @@ class Converter():
 
         _set_length('hip')
         _set_length('knee')
-        _set_length('ankle')
+        _set_length('foot')
         _set_length('toe')
         _set_length('shoulder')
         _set_length('elbow')
@@ -451,7 +451,8 @@ def Decompose_R_ZXY(R):
 if __name__=="__main__":
     from ppit.src.utils import reader
     config = reader("../../../config/data_processor_example.yml")
-    joints_dict = {joint_name.lower().replace(" ",""): joint_index for joint_name, joint_index in config["joints"].items()}
+    from data_ingestion import JOINTS
+    joints_dict = {joint: idx for idx, joint in enumerate(JOINTS)}
     joint_coords_converter = Converter(joints_dict)
     data_path = '../../../data/vertexAI_PPIT_data.csv'
     from ppit.src.components.data_ingestion import DataLoader
