@@ -5,22 +5,22 @@ from ppit.src.utils import timing
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 
-DEFAULT_SKELETON = {'hips': [[-111, 9557, 15726]],
-                     'lefthip': [[4118,	-9089,	15819]],
-                     'righthip': [[-4340,	-10026,	15634]],
+DEFAULT_SKELETON = {'hips': [-111, 9557, 15726],
+                     'lefthip': [4118,	-9089,	15819],
+                     'righthip': [-4340,	-10026,	15634],
                      'righttoe': [-3029,	-11039,	149],
                      'lefttoe': [2665,	-10929,	81],
                      'neck': [-86, -8889, 28144],
-                     'leftshoulder': [[3493,	-8603,	28180]],
+                     'leftshoulder': [3493,	-8603,	28180],
                      'leftwrist': [4527,	-10497,	15943],
-                     'rightshoulder': [[-3665,-9175,28108]],
-                     'rightwrist':[[-4613,	-10789,	16114]],
-                     'leftelbow': [[4118,	-9185,	21457]],
+                     'rightshoulder': [-3665,-9175,28108],
+                     'rightwrist':[-4613,	-10789,	16114],
+                     'leftelbow': [4118,	-9185,	21457],
                     'rightelbow': [-5253,	-9424,	21924],
-                    'rightknee': [[-2358,	-8777,	8458]],
-                    'leftknee':[[1997,	-8607,	8724]],
-                    'rightankle':[[-2491,	-7293,	770]],
-                    'leftankle':[[2268,	-7095,	686]]
+                    'rightknee': [-2358,	-8777,	8458],
+                    'leftknee':[1997,	-8607,	8724],
+                    'rightankle':[-2491,	-7293,	770],
+                    'leftankle':[2268,	-7095,	686]
                     }
 
 class Converter():
@@ -38,6 +38,8 @@ class Converter():
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
+
+        self.kpts['joints']+=["hips", "neck"]
         hierarchy = {'hips': [],
                      'lefthip': ['hips'], 'leftknee': ['lefthip', 'hips'], 'leftankle': ['leftknee', 'lefthip', 'hips'],
                      'righthip': ['hips'], 'rightknee': ['righthip', 'hips'],
@@ -56,6 +58,8 @@ class Converter():
         self.get_bone_lengths(default=True)
         self.get_base_skeleton()
         return
+
+
 
     @timing
     def coordinate2angle(self, coordinates_array: np.ndarray) -> np.ndarray:
@@ -113,7 +117,8 @@ class Converter():
 
         self.kpts['hips'] = np.ones(self.kpts['leftankle_angles'].shape) # change to hips rotation angle later  TODO
         self.kpts['joints'] = list(self.index_to_joint.values())
-        self.kpts['joints'] += ['hips', 'neck']
+        if "hips" not in self.kpts['joints']: self.kpts['joints'] += ['hips']
+        if "neck" not in self.kpts['joints']: self.kpts['joints'] += ['neck']
 
 
         for framenum in range(self.kpts['hips'].shape[0]):
@@ -198,7 +203,7 @@ class Converter():
 
         """
         We have to define an initial skeleton pose(T pose).
-        In this case we need to known the length of each bone.
+        In this case we need to know the length of each bone.
         Here we calculate the length of each bone from data
         """
 
@@ -283,12 +288,10 @@ class Converter():
             # add hips kpts
             hips = (self.kpts['lefthip'] + self.kpts['righthip']) / 2
             self.kpts['hips'] = hips
-            self.kpts['joints'].append('hips')
         if 'leftshoulder' in self.kpts.keys() and 'rightshoulder' in self.kpts.keys():
             # add neck self.kpts
             neck = (self.kpts['leftshoulder'] + self.kpts['rightshoulder']) / 2
             self.kpts['neck'] = neck
-            self.kpts['joints'].append('neck')
             # define the hierarchy of the joints
         return
 
