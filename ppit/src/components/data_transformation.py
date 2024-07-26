@@ -453,11 +453,11 @@ class ReadMoCap():
             for marker in self.merge_point_label[joint]:
                 landmark = self.marker_set[marker]
                 try:
-                    idx = label.index(landmark)  # In some data, the point does not exist
+                    idx = label.index(landmark)  # In some data, the coordinates points does not exist
                     joint_data.append(full_data[idx])
                 except:
-                    print('marker %s cannot be found' % landmark)
-            print("joint", joint, ". \n The number of nan value", np.sum(np.isnan(joint_data)),
+                    logging.info('marker %s cannot be found' % landmark)
+            logging.info("joint", joint, ". \n The number of nan value", np.sum(np.isnan(joint_data)),
                   ". \n The data shape for this joint",
                   np.array(joint_data).shape,
                   ". \n The data shape after mean calculation for this joint",
@@ -465,7 +465,7 @@ class ReadMoCap():
                   ". \n The number of nan value after mean treatment",
                   np.sum(np.isnan(np.nanmean(joint_data, axis=0))))
             data.append(np.nanmean(joint_data, axis=0))
-        print("full data", np.array(data).shape, np.sum(np.isnan(np.array(data))))
+        logging.info("full data", np.array(data).shape, np.sum(np.isnan(np.array(data))))
         return np.array(data)
 
     def fillna(self, data):
@@ -655,6 +655,10 @@ class ReadMoCap():
         upper_bound = np.nanmax(np.nanmax(data, axis=-1), axis=0)
         lower_bound = np.nanmin(np.nanmin(data, axis=-1), axis=0)
         print((lower_bound, upper_bound))
+
+class ReadTracker():
+    def __init__(self):
+        return
 
 
 def reformat_file(df):

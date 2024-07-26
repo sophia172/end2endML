@@ -277,7 +277,22 @@ class Converter():
         base_skeleton['neck'] = offset_directions['neck'] * (body_lengths['neck'] / normalization)
 
         self.kpts['offset_directions'] = offset_directions
-        self.kpts['base_skeleton'] = base_skeleton
+        self.kpts['base_skeleton'] = {'hips': np.array([0, 0, 0]),
+                                     'lefthip': np.array([-0.5,  0,  0]),
+                                     'righthip': np.array([0.5, 0, 0]),
+                                     'leftknee': np.array([0., -1,  0.]),
+                                     'rightknee': np.array([0, -1,  0]),
+                                     'leftankle': np.array([0, -1,  0]),
+                                     'rightankle': np.array([ 0, -1,  0]),
+                                     'lefttoe': np.array([ 0, -0.5,  0]),
+                                     'righttoe': np.array([ 0, -0.5,  0]),
+                                     'leftshoulder': np.array([0.5, 0, 0]),
+                                     'rightshoulder': np.array([-0.5,  0,  0]),
+                                     'leftelbow': np.array([0.9, 0, 0]),
+                                     'rightelbow': np.array([-0.9,  0,  0]),
+                                     'leftwrist': np.array([0.8, 0, 0]),
+                                     'rightwrist': np.array([-0.8,  0,  0]),
+                                     'neck': np.array([0, 1.3, 0])}
         self.kpts['normalization'] = normalization
         return
 

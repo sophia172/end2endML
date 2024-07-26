@@ -1,0 +1,104 @@
+
+model:
+  - Conv3dBlock:
+      name: layer_1
+      filters: 32
+      kernel_size:
+        - 2
+        - 3
+        - 3
+      strides:
+        - 2
+        - 1
+        - 1
+      padding: same
+      activation: tanh
+      dropout: .2
+
+  - Conv3dBlock:
+      name: layer_2
+      filters: 64
+      kernel_size:
+        - 2
+        - 3
+        - 3
+      strides:
+        - 2
+        - 2
+        - 2
+      padding: same
+      activation: tanh
+      dropout: .2
+
+  - Conv3dBlock:
+      name: layer_3
+      filters: 128
+      kernel_size:
+        - 2
+        - 3
+        - 4
+      strides:
+        - 2
+        - 1
+        - 2
+      padding: same
+      activation: tanh
+      dropout: .2
+
+  - FlattenBlock:
+      name: layer_4
+      reshape:  # None
+        - 128
+        - 12
+        - 3
+      activation: tanh
+      dropout: .2
+
+  - Conv2dBlock:
+      name: layer_5
+      filters: 32
+      kernel_size:
+        - 2
+        - 2
+      strides:
+        - 1
+        - 1
+      padding: same
+      activation: tanh
+      dropout: .2
+
+
+train:
+  input:
+    shape:
+      - 10
+      - 13
+      - 24
+  optimizer:
+    Adam:
+      learning_rate: 0.0001
+      decay: 0.003
+  callbacks:
+    early_stopping:
+      monitor: val_loss
+      min_delta: 0
+      patience: 3
+      verbose: 0
+      mode: auto
+      baseline: None
+      restore_best_weights: False
+    csv_logger:
+      filename: training_loss.csv
+    save_each_epoch:
+      monitor: val_loss
+      verbose: 0
+      save_best_only: False
+      save_weights_only: True
+      mode: auto
+      period: 1
+  loss: MAE
+  batch_size: 64
+  epochs: 100
+  verbose: 1
+  retrain: False
+  shuffle: 1000
