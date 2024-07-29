@@ -29,8 +29,8 @@ setup(
     version=read_version(),
     author="Ying Liu",
     author_email="sophia.j.liu@gmail.com",
-    # pckages=find_packages(),
-    # python_requires="==3.10.*",
+    pckages=find_packages(),
+    python_requires="==3.10.*",
     # install_requires=[
     #     str(r)
     #     for r in pkg_resources.parse_requirements(
