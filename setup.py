@@ -29,7 +29,7 @@ setup(
     version=read_version(),
     author="Ying Liu",
     author_email="sophia.j.liu@gmail.com",
-    pckages=find_packages(include=['ppit']),
+    # pckages=find_packages(include=['ppit']),
     # python_requires="==3.10.*",
     # install_requires=[
     #     str(r)
