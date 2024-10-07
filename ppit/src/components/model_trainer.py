@@ -14,7 +14,7 @@ from sklearn.svm import SVR
 from sklearn.metrics import r2_score
 from ppit.src.components.models import CNN
 from ppit.src.components.vit import vit
-
+import torch
 
 MODEL = {
             'CNN': CNN,
@@ -41,6 +41,20 @@ class ModelTrainer:
             return model+id, MODEL[model]
         else:
             raise CustomException("Model name must start with 'model'")
+
+    def loss(self):
+        loss_fn = torch.nn.CrossEntropyLoss()
+
+        # NB: Loss functions expect data in batches, so we're creating batches of 4
+        # Represents the model's confidence in each of the 10 classes for a given input
+        dummy_outputs = torch.rand(4, 10)
+        # Represents the correct class among the 10 being tested
+        dummy_labels = torch.tensor([1, 5, 3, 7])
+
+        print(dummy_outputs)
+        print(dummy_labels)
+
+        return loss_fn(dummy_outputs, dummy_labels)
 
     def __call__(self, X_train, X_test, y_train, y_test):
 
