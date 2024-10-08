@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from datetime import datetime
 class vit(ViT):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, epoch, *args, **kwargs):
         # Call the parent class (ViT) constructor with the provided arguments
         super(vit, self).__init__(*args, **kwargs)
         self.model = ViT(*args, **kwargs)
@@ -18,6 +18,7 @@ class vit(ViT):
         # # self.config = None
         # # self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
         self.model_dir = "../../../model/model_ViT_test/"
+        self.epoch = epoch
         return
 
     # def build(self, **kwargs):
@@ -44,7 +45,6 @@ class vit(ViT):
         return torch.optim.Adam(self.model.parameters())
 
     def train_one_epoch(self,
-                        epoch,
                         train_dataloader,
                         optimizer=None,
                         loss_fn=None):
@@ -76,7 +76,7 @@ class vit(ViT):
             epoch_loss += loss
 
         logging.info(
-                    f"Epoch : {epoch + 1} "
+                    f"Epoch : {self.epoch + 1} "
                     f"- loss : {epoch_loss / (i + 1):.4f} "
                 )
 
@@ -97,21 +97,18 @@ class vit(ViT):
         summarywriter = SummaryWriter(f"Model saved at {self.model_dir}/runs/trainer_{timestamp}")
         epoch_number = 0
 
-        EPOCHS = 200
-
 
         # loss function
         loss_fn = self.loss_fn()
         # optimizer
         optimizer = self.optimizer()
 
-        for epoch in tqdm(range(EPOCHS)):
+        for epoch in tqdm(range(self.epoch)):
             logging.info('EPOCH {}:'.format(epoch_number + 1))
 
             # Make sure gradient tracking is on, and do a pass over the data
             self.model.train(True)
-            avg_loss = self.train_one_epoch(epoch,
-                                            train_dataloader,
+            avg_loss = self.train_one_epoch(train_dataloader,
                                             optimizer=optimizer,
                                             loss_fn=loss_fn,
                                             )
@@ -155,8 +152,8 @@ class vit(ViT):
 if __name__ == "__main__":
 
     v = vit(
-        image_size=24,
-        patch_size=4,
+        image_size=(14,24),
+        patch_size=2,
         num_classes=48,
         dim=1024,
         depth=6,
@@ -164,12 +161,13 @@ if __name__ == "__main__":
         mlp_dim=512,
         dropout=0.1,
         emb_dropout=0.1,
+        epoch=10
 
     )
 
     import numpy as np
-    X_train = torch.tensor(np.random.rand(256, 3, 16, 24), dtype=torch.float32)
-    X_test = torch.tensor(np.random.rand(64, 3, 16, 24), dtype=torch.float32)
+    X_train = torch.tensor(np.random.rand(256, 3, 14, 24), dtype=torch.float32)
+    X_test = torch.tensor(np.random.rand(64, 3, 14, 24), dtype=torch.float32)
     y_train = torch.tensor(np.random.rand(256, 48), dtype=torch.float32)
     y_test = torch.tensor(np.random.rand(64, 48), dtype=torch.float32)
 
