@@ -9,16 +9,23 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from datetime import datetime
+from torch.utils.data import DataLoader, TensorDataset
+import numpy
+import torch
 class vit(ViT):
-    def __init__(self, epoch, *args, **kwargs):
+    def __init__(self, epoch, batch,  *args, **kwargs):
         # Call the parent class (ViT) constructor with the provided arguments
         super(vit, self).__init__(*args, **kwargs)
-        self.model = ViT(*args, **kwargs)
         # # self.model = None
         # # self.config = None
         # # self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
         self.model_dir = "../../../model/model_ViT_test/"
         self.epoch = epoch
+        self.batch = batch
+        self.device = torch.device("cuda" if torch.cuda.is_available()
+                                    else "mps" if torch.backends.mps.is_available()
+                                    else "cpu")
+        self.model = ViT(*args, **kwargs).to(self.device)
         return
 
     # def build(self, **kwargs):
@@ -63,10 +70,10 @@ class vit(ViT):
             optimizer.zero_grad()
 
             # Make predictions for this batch
-            outputs = self.model(inputs)
+            outputs = self.model(inputs.to(self.device))
 
             # Compute the loss and its gradients
-            loss = loss_fn(outputs, labels)
+            loss = loss_fn(outputs, labels.to(self.device))
             loss.backward()
 
             # Adjust learning weights
@@ -85,9 +92,18 @@ class vit(ViT):
         # DataLoader
         from torch.utils.data import DataLoader, TensorDataset
 
-        train_dataloader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
-        test_dataloader = DataLoader(TensorDataset(X_test, y_test), batch_size=64, shuffle=True)
-
+        train_dataloader = DataLoader(TensorDataset(
+                                            torch.tensor(X_train, dtype=torch.float32),
+                                                    torch.tensor(y_train, dtype=torch.float32)
+                                                    ),
+                                        batch_size=self.batch,
+                                        shuffle=True)
+        test_dataloader = DataLoader(TensorDataset(
+                                            torch.tensor(X_test, dtype=torch.float32),
+                                                     torch.tensor(y_test, dtype=torch.float32)
+                                                    ),
+                                        batch_size=self.batch,
+                                        shuffle=True)
 
         logging.info(f"Start fitting process")
 
@@ -122,8 +138,8 @@ class vit(ViT):
             with torch.no_grad():
                 for i, vdata in enumerate(test_dataloader):
                     vinputs, vlabels = vdata
-                    voutputs = self.model(vinputs)
-                    vloss = loss_fn(voutputs, vlabels)
+                    voutputs = self.model(vinputs.to(self.device))
+                    vloss = loss_fn(voutputs, vlabels.to(self.device))
                     running_vloss += vloss
 
             avg_vloss = running_vloss / (i + 1)
@@ -136,17 +152,29 @@ class vit(ViT):
                                epoch_number + 1)
             summarywriter.flush()
 
-            # # Track best performance, and save the model's state
-            # if avg_vloss < best_vloss:
-            #     best_vloss = avg_vloss
-            #     model_path = 'model_{}_{}'.format(timestamp, epoch_number)
-            #     torch.save(model.state_dict(), model_path)
 
         return
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = super(vit, self).forward(x)  # Call Parent's forward method
         x = torch.sigmoid(x)
         return x
+
+    def predict(self, X) -> numpy.ndarray:
+        self.model.eval()  # Set model to evaluation mode
+        predictions = []
+
+        dataset = TensorDataset(torch.tensor(X, dtype=torch.float32))
+        dataloader = DataLoader(dataset, batch_size=self.batch, shuffle=False)
+
+        with torch.no_grad():  # Disable gradient calculation
+            for inputs in dataloader:
+                inputs = inputs[0].to(self.device)  # Move inputs to GPU
+                outputs = self.model(inputs)  # Perform forward pass
+                predictions.append(outputs.cpu())  # Move results back to CPU
+
+        # Concatenate all predictions into a single tensor
+        return torch.cat(predictions).detach().numpy()
+
 
 
 if __name__ == "__main__":
@@ -161,22 +189,24 @@ if __name__ == "__main__":
         mlp_dim=512,
         dropout=0.1,
         emb_dropout=0.1,
-        epoch=10
+        epoch=1,
+        batch=256
 
     )
 
     import numpy as np
-    X_train = torch.tensor(np.random.rand(256, 3, 14, 24), dtype=torch.float32)
-    X_test = torch.tensor(np.random.rand(64, 3, 14, 24), dtype=torch.float32)
-    y_train = torch.tensor(np.random.rand(256, 48), dtype=torch.float32)
-    y_test = torch.tensor(np.random.rand(64, 48), dtype=torch.float32)
+    X_train = np.random.rand(256, 3, 14, 24)
+    X_test = np.random.rand(64, 3, 14, 24)
+    y_train = np.random.rand(256, 48)
+    y_test = np.random.rand(64, 48)
 
+    X_val = np.random.rand(64, 3, 14, 24)
     v.fit(X_train, X_test, y_train, y_test)
-    output = v(X_train)
+    output = v.predict(X_val)
     from matplotlib import pyplot as plt
-    plt.hist(output.detach().numpy(), label="prediction")
+    plt.hist(output, label="prediction")
     plt.legend()
     plt.show()
-    plt.hist(y_train.detach().numpy(), label="y_test")
+    plt.hist(y_train, label="y_test")
     plt.legend()
     plt.show()
