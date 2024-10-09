@@ -12,8 +12,32 @@ from datetime import datetime
 from torch.utils.data import DataLoader, TensorDataset
 import numpy
 import torch
+
+# Function for early stopping
+class EarlyStopping:
+    def __init__(self, patience=5, min_delta=0):
+        """
+        :param patience: How many epochs to wait after last time validation loss improved.
+        :param min_delta: Minimum change in the monitored quantity to qualify as an improvement.
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.best_loss = float('inf')
+        self.counter = 0
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0  # Reset counter if improvement
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+
+
 class vit(ViT):
-    def __init__(self, epoch, batch,  *args, **kwargs):
+    def __init__(self, epoch, batch, configuration_path, *args, **kwargs):
         # Call the parent class (ViT) constructor with the provided arguments
         super(vit, self).__init__(*args, **kwargs)
         # # self.model = None
@@ -26,6 +50,7 @@ class vit(ViT):
                                     else "mps" if torch.backends.mps.is_available()
                                     else "cpu")
         self.model = ViT(*args, **kwargs).to(self.device)
+        self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
         return
 
     # def build(self, **kwargs):
@@ -119,6 +144,9 @@ class vit(ViT):
         # optimizer
         optimizer = self.optimizer()
 
+        # Instantiate the EarlyStopping object
+        early_stopping = EarlyStopping(patience=3, min_delta=0.001)
+
         for epoch in tqdm(range(self.epoch)):
             logging.info('EPOCH {}:'.format(epoch_number + 1))
 
@@ -145,15 +173,23 @@ class vit(ViT):
             avg_vloss = running_vloss / (i + 1)
             print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
 
+            # Call early stopping and break if the condition is met
+            early_stopping(avg_vloss)
+            if early_stopping.early_stop:
+                print("Early stopping triggered")
+                break
+
+
             # Log the running loss averaged per batch
             # for both training and validation
             summarywriter.add_scalars('Training vs. Validation Loss',
                                {'Training': avg_loss, 'Validation': avg_vloss},
                                epoch_number + 1)
             summarywriter.flush()
-
-
+        self.save()
         return
+
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = super(vit, self).forward(x)  # Call Parent's forward method
         x = torch.sigmoid(x)
@@ -175,6 +211,13 @@ class vit(ViT):
         # Concatenate all predictions into a single tensor
         return torch.cat(predictions).detach().numpy()
 
+    def save(self):
+        try:
+            torch.save(self.model, self.model_dir)
+            logging.info(f"Model saved at {self.model_dir}")
+        except Exception as e:
+            raise CustomException(e, sys)
+
 
 
 if __name__ == "__main__":
@@ -189,8 +232,9 @@ if __name__ == "__main__":
         mlp_dim=512,
         dropout=0.1,
         emb_dropout=0.1,
-        epoch=1,
-        batch=256
+        epoch=10,
+        batch=256,
+        configuration_path="../../../config/"
 
     )
 
