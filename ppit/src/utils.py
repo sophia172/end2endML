@@ -137,7 +137,7 @@ def basename(file_path):
 def load_config(configuration_path, folder="model"):
     config_filename = basename(configuration_path)
     config = AttrDict.from_nested_dicts(reader(configuration_path))
-    sub_folder_path = os.path.join(folder, config_filename)
+    sub_folder_path = os.path.join(os.path.dirname(configuration_path), folder, config_filename)
     os.makedirs(sub_folder_path, exist_ok=True)
     logging.info(f"Creating {folder} folder {config_filename}")
     return (config_filename, config, sub_folder_path)
