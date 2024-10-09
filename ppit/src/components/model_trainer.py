@@ -46,10 +46,11 @@ class ModelTrainer:
 
         try:
             for model_name in self.model_setup:
-                model = self.model_setup[model_name]["model"](self.model_setup[model_name]["config_file"])
-                model.build()
-                model.fit(X_train, X_test, y_train, y_test)
-                model.save()
+                self.model_setup[model_name]["model"] \
+                    = self.model_setup[model_name]["model"](self.model_setup[model_name]["config_file"])
+                self.model_setup[model_name]["model"].build()
+                self.model_setup[model_name]["model"].fit(X_train, X_test, y_train, y_test)
+                self.model_setup[model_name]["model"].save()
                 logging.info(f"Finished training pipeline for model {model_name}")
         except Exception as e:
             raise CustomException(e, sys)
