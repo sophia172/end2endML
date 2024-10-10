@@ -74,6 +74,7 @@ def reader(
         "yml": ReadYAML,
         "csv": ReadCSV,
     }
+    logging.info(f"Reading from {input_path}")
     return readers[input_format](input_path)
 
 def ReadCSV(file_path: str):

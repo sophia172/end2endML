@@ -12,6 +12,9 @@ from datetime import datetime
 from torch.utils.data import DataLoader, TensorDataset
 import numpy
 import torch
+from torch.utils.data import DataLoader, TensorDataset
+import numpy as np
+import os
 
 # Function for early stopping
 class EarlyStopping:
@@ -36,39 +39,44 @@ class EarlyStopping:
                 self.early_stop = True
 
 
-class vit(ViT):
-    def __init__(self, epoch, batch, configuration_path, *args, **kwargs):
+class vit():
+    def __init__(self, configuration_path):
         # Call the parent class (ViT) constructor with the provided arguments
-        super(vit, self).__init__(*args, **kwargs)
+        super(vit, self).__init__()
         # # self.model = None
         # # self.config = None
         # # self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
-        self.model_dir = "../../../model/model_ViT_test/"
-        self.epoch = epoch
-        self.batch = batch
-        self.device = torch.device("cuda" if torch.cuda.is_available()
-                                    else "mps" if torch.backends.mps.is_available()
-                                    else "cpu")
-        self.model = ViT(*args, **kwargs).to(self.device)
+        # self.model_dir = "../../../model/model_ViT_test/"
+        # self.epoch = epoch
+        # self.batch = batch
+        # self.model = ViT(*args, **kwargs)
+        self.model = None
+        self.config = None
         self.config_filename, self.config, self.model_dir = load_config(configuration_path, folder="model")
         return
 
-    # def build(self, **kwargs):
-    #     try:
-    #         print(self.config.image_size)
-    #         self.model = ViT(image_size=self.config.image_size,
-    #                         patch_size=self.config.patch_size,
-    #                         num_classes=self.config.num_classes,
-    #                         dim=self.config.dim,
-    #                         depth=self.config.depth,
-    #                         heads=self.config.heads,
-    #                         mlp_dim=self.config.mlp_dim,
-    #                         dropout=self.config.dropout,
-    #                         emb_dropout=self.config.emb_dropout)
-    #         logging.info(f"Finished building ViT")
-    #         return
-    #     except Exception as e:
-    #         raise CustomException(e, sys)
+    def build(self):
+        try:
+            self.device = torch.device("cuda" if torch.cuda.is_available()
+                                       else "mps" if torch.backends.mps.is_available()
+                                        else "cpu")
+
+            self.model = ViT(
+                image_size=tuple(self.config.model.image_size),
+                patch_size=self.config.model.patch_size,
+                num_classes=self.config.model.num_classes,
+                dim=self.config.model.dim,
+                depth=self.config.model.depth,
+                heads=self.config.model.heads,
+                mlp_dim=self.config.model.mlp_dim,
+                dropout=self.config.model.dropout,
+                emb_dropout=self.config.model.emb_dropout,
+                             ).to(self.device)
+            # self.model = ViT(**self.config.model).to(self.device)
+            logging.info(f"Finished building ViT")
+            return
+        except Exception as e:
+            raise CustomException(e, sys)
 
     def loss_fn(self):
         return torch.nn.MSELoss()
@@ -108,26 +116,24 @@ class vit(ViT):
             epoch_loss += loss
 
         logging.info(
-                    f"Epoch : {self.epoch + 1} "
                     f"- loss : {epoch_loss / (i + 1):.4f} "
                 )
 
         return epoch_loss / (i + 1)
     def fit(self, X_train, X_test, y_train, y_test):
         # DataLoader
-        from torch.utils.data import DataLoader, TensorDataset
 
         train_dataloader = DataLoader(TensorDataset(
-                                            torch.tensor(X_train, dtype=torch.float32),
-                                                    torch.tensor(y_train, dtype=torch.float32)
+                                            torch.from_numpy(X_train.astype(np.float32)),
+                                                    torch.from_numpy(y_train.astype(np.float32))
                                                     ),
-                                        batch_size=self.batch,
+                                        batch_size=self.config.train.batch_size,
                                         shuffle=True)
         test_dataloader = DataLoader(TensorDataset(
-                                            torch.tensor(X_test, dtype=torch.float32),
-                                                     torch.tensor(y_test, dtype=torch.float32)
+                                            torch.from_numpy(X_test.astype(np.float32)),
+                                                    torch.from_numpy(y_test.astype(np.float32))
                                                     ),
-                                        batch_size=self.batch,
+                                        batch_size=self.config.train.batch_size,
                                         shuffle=True)
 
         logging.info(f"Start fitting process")
@@ -147,7 +153,7 @@ class vit(ViT):
         # Instantiate the EarlyStopping object
         early_stopping = EarlyStopping(patience=3, min_delta=0.001)
 
-        for epoch in tqdm(range(self.epoch)):
+        for epoch in tqdm(range(self.config.train.epochs)):
             logging.info('EPOCH {}:'.format(epoch_number + 1))
 
             # Make sure gradient tracking is on, and do a pass over the data
@@ -195,12 +201,12 @@ class vit(ViT):
         x = torch.sigmoid(x)
         return x
 
-    def predict(self, X) -> numpy.ndarray:
+    def predict(self, X: numpy.ndarray) -> numpy.ndarray:
         self.model.eval()  # Set model to evaluation mode
         predictions = []
 
-        dataset = TensorDataset(torch.tensor(X, dtype=torch.float32))
-        dataloader = DataLoader(dataset, batch_size=self.batch, shuffle=False)
+        dataset = TensorDataset(torch.from_numpy(X.astype(np.float32)))
+        dataloader = DataLoader(dataset, batch_size=self.config.train.batch_size, shuffle=False)
 
         with torch.no_grad():  # Disable gradient calculation
             for inputs in dataloader:
@@ -213,7 +219,7 @@ class vit(ViT):
 
     def save(self):
         try:
-            torch.save(self.model, self.model_dir)
+            torch.save(self.model, os.path.join(self.model_dir, "model.pth"))
             logging.info(f"Model saved at {self.model_dir}")
         except Exception as e:
             raise CustomException(e, sys)

@@ -23,9 +23,13 @@ MODEL = {
 
 class ModelTrainer:
     def __init__(self, config_path):
+        if os.path.isfile(config_path):
+            model_config_files = [config_path]
+        else:
+            model_config_files = scan_folder(config_path)
 
-        model_config_files = scan_folder(config_path)
         self.model_setup = collections.defaultdict(dict)
+
         for config_file in model_config_files:
             config_filename = basename(config_file)
 
@@ -49,6 +53,8 @@ class ModelTrainer:
                 self.model_setup[model_name]["model"] \
                     = self.model_setup[model_name]["model"](self.model_setup[model_name]["config_file"])
                 self.model_setup[model_name]["model"].build()
+
+                logging.info(f"Initializing model {model_name}...")
                 self.model_setup[model_name]["model"].fit(X_train, X_test, y_train, y_test)
                 self.model_setup[model_name]["model"].save()
                 logging.info(f"Finished training pipeline for model {model_name}")
@@ -126,15 +132,17 @@ class BaselineSearch:
 if __name__=="__main__":
     from ppit.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
-    from ppit.src.components.models import CNN
-    data_loader = DataLoader("../../data/vertexAI_PPIT_data.csv")
-
-    data = data_loader()
-    X_train, X_test, y_train, y_test = train_test_split(*data)
-    model = CNN("../../config/model_CNN_example.yml")
-    model.build()
-
-    model.debug_compile_fit(X_train, X_test, y_train, y_test)
-    # model.compile()
+    from ppit.src.components.vit import vit
+    import numpy as np
+    X_train = np.random.rand(256, 3, 14, 24)
+    X_test = np.random.rand(64, 3, 14, 24)
+    y_train = np.random.rand(256, 42)
+    y_test = np.random.rand(64, 42)
+    # model = vit("../../config/")
+    # model.build()
+    trainer = ModelTrainer("../../../config/model_ViT_colabTEST.yml")
+    trainer(X_train, X_test, y_train, y_test)
+    # # model.debug_compile_fit(X_train, X_test, y_train, y_test)
+    # # model.compile()
     # model.fit(X_train, y_train, X_test, y_test)
     # model.save()
