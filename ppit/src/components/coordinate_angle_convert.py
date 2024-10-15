@@ -41,6 +41,9 @@ class Converter():
 
         self.index_to_joint = {idx: joint for joint, idx in self.joint_to_index.items()}
 
+        self.joint_to_index = {self.index_to_joint[idx]: idx for idx in range(1, 15)}
+        self.index_to_joint = {idx: self.index_to_joint[idx] for idx in range(1, 15)}
+
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
 
@@ -483,14 +486,17 @@ def Decompose_R_ZXY(R):
 if __name__=="__main__":
 
 
-
+    frame = 0
     keypoint_data = reader("../../../data/20230626_5_set_3_1.p")['keypoint']
+    print(keypoint_data[frame])
 
     joint_coords_converter1 = Converter("../../../config/data_processor_example.yml")
     angle_data = joint_coords_converter1.coordinate2angle(keypoint_data)
+    print(angle_data[frame])
 
     joint_coords_converter2 = Converter("../../../config/data_processor_example.yml")
     converted_data = joint_coords_converter2.angle2coordinate(angle_data)
+    print(converted_data[frame])
 
     # converted_data[:, :, [0, 1, 2]] = converted_data[:, :, [0, 2, 1]]
     # converted_data += np.array([0, 0, 2])
