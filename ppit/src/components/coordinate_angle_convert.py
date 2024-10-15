@@ -4,6 +4,7 @@ import numpy as np
 from ppit.src.utils import timing
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
+from ppit.src.utils import reader, writer
 
 DEFAULT_SKELETON = {'hips': [-111, 9557, 15726],
                      'lefthip': [4118,	-9089,	15819],
@@ -61,6 +62,8 @@ class Converter():
         self.kpts['root_joint'] = 'hips'
         self.get_bone_lengths(default=True)
         self.get_base_skeleton()
+        logging.info(f"Finished initialising keypoint angle converter component")
+
         return
 
 
