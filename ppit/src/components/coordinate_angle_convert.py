@@ -106,7 +106,7 @@ class Converter():
         return np.swapaxes(angles_array, 0, 1)
 
 
-
+    @timing
     def angle2coordinate(self, angles_array: np.ndarray) -> np.ndarray:
         assert angles_array.shape[-1] == 3, ("Angle array should have format in (x,y,z) axis, data shape "
                                                    "should be (frames, joint number, 3)")
@@ -484,32 +484,329 @@ if __name__=="__main__":
 
 
 
-    from ppit.src.utils import reader
-    data = reader("../../../data/20230626_1_set_1_2.p")
-    print(data['keypoint'].shape)
+    keypoint_data = reader("../../../data/20230626_5_set_3_1.p")['keypoint']
 
-    from ppit.src.utils import reader
-    # config = reader("../../../config/data_processor_example.yml")
-    # joints_dict = {joint_name.lower().replace(" ", ""): joint_index for joint_name, joint_index in
-    #                config["joints"].items()}
-    # print("joints_dict", joints_dict)
-    joint_coords_converter = Converter("../../../config/data_processor_example.yml")
-    angle_data = joint_coords_converter.coordinate2angle(data['keypoint'])
-    # print(joint_coords_converter.kpts.keys())
-    # print(joint_coords_converter.kpts["leftshoulder_angles"][:5])
+    joint_coords_converter1 = Converter("../../../config/data_processor_example.yml")
+    angle_data = joint_coords_converter1.coordinate2angle(keypoint_data)
 
-    # print("angle_data", angle_data.shape)
+    joint_coords_converter2 = Converter("../../../config/data_processor_example.yml")
+    converted_data = joint_coords_converter2.angle2coordinate(angle_data)
 
-    # data_path = '../../../data/vertexAI_PPIT_data.csv'
-    # from ppit.src.components.data_ingestion import DataLoader
-    # data_loader = DataLoader(data_path)
-    # data = data_loader(input_shape=(3, 16, 24))
-    # from sklearn.model_selection import train_test_split
-    #
-    # X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
-    # print(y_test.shape)
-    joint_coords_converter = Converter("../../../config/data_processor_example.yml")
-    coords = joint_coords_converter.angle2coordinate(angle_data)
-    print(coords[:5, 0, :])
+    # converted_data[:, :, [0, 1, 2]] = converted_data[:, :, [0, 2, 1]]
+    # converted_data += np.array([0, 0, 2])
+    converted_data *= 5000
+
+    body = [[6, 4, 2, 1, 3, 5],  # arm joints
+            [12, 10, 8, 7, 9, 11],  # leg joints
+            [1, 2, 8, 7, 1],  # torso joints
+            [15, 13, 14],  # Mat 1 , 2, 3
+            ]
+
+    arm_data = np.swapaxes([keypoint_data[:, i - 1, :] for i in body[0]], 0, 1).astype(int)
+    arm_data = np.swapaxes(arm_data, 1, 2).astype(int)
+    leg_data = np.swapaxes([keypoint_data[:, i - 1, :] for i in body[1]], 0, 1).astype(int)
+    leg_data = np.swapaxes(leg_data, 1, 2).astype(int)
+    torso_data = np.swapaxes([keypoint_data[:, i - 1, :] for i in body[2]], 0, 1).astype(int)
+    torso_data = np.swapaxes(torso_data, 1, 2).astype(int)
+
+    converted_arm_data = np.swapaxes([converted_data[:, i - 1, :] for i in body[0]], 0, 1).astype(int)
+    converted_arm_data = np.swapaxes(converted_arm_data, 1, 2).astype(int)
+    converted_leg_data = np.swapaxes([converted_data[:, i - 1, :] for i in body[1]], 0, 1).astype(int)
+    converted_leg_data = np.swapaxes(converted_leg_data, 1, 2).astype(int)
+    converted_torso_data = np.swapaxes([converted_data[:, i - 1, :] for i in body[2]], 0, 1).astype(int)
+    converted_torso_data = np.swapaxes(converted_torso_data, 1, 2).astype(int)
+
+    # Define frames
+    import plotly.graph_objects as go
+
+    fig = go.Figure(frames=[go.Frame(
+        data=[
+
+            go.Scatter3d(
+                x=arm_data[k, 0, :],
+                y=arm_data[k, 1, :],
+                z=arm_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='black',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='black',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+            go.Scatter3d(  # joint marker
+                x=leg_data[k, 0, :],
+                y=leg_data[k, 1, :],
+                z=leg_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='red',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='red',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+            go.Scatter3d(  # joint marker
+                x=torso_data[k, 0, :],
+                y=torso_data[k, 1, :],
+                z=torso_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='blue',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='blue',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+
+            go.Scatter3d(
+                x=converted_arm_data[k, 0, :],
+                y=converted_arm_data[k, 1, :],
+                z=converted_arm_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='black',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='black',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+            go.Scatter3d(  # joint marker
+                x=converted_leg_data[k, 0, :],
+                y=converted_leg_data[k, 1, :],
+                z=converted_leg_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='red',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='red',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+            go.Scatter3d(  # joint marker
+                x=converted_torso_data[k, 0, :],
+                y=converted_torso_data[k, 1, :],
+                z=converted_torso_data[k, 2, :],
+                marker=dict(
+                    size=0,
+                    color='blue',
+                    #                                                                     colorscale='Inferno',
+                ),
+                line=dict(
+                    width=5,
+                    color='blue',
+                    #                                                                     colorscale='Inferno'
+                )
+            ),
+
+        ]
+        ,
+        name=str(k)  # you need to name the frame for the animation to behave properly
+    )
+        for k in range(len(keypoint_data))])
+
+    fig.add_trace(go.Scatter3d(
+        x=arm_data[0, 0, :],
+        y=arm_data[0, 1, :],
+        z=arm_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='black',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='black',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+
+    fig.add_trace(go.Scatter3d(  # joint marker
+        x=leg_data[0, 0, :],
+        y=leg_data[0, 1, :],
+        z=leg_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='red',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='red',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+    fig.add_trace(go.Scatter3d(  # joint marker
+        x=torso_data[0, 0, :],
+        y=torso_data[0, 1, :],
+        z=torso_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='blue',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='blue',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+
+    fig.add_trace(go.Scatter3d(
+        x=converted_arm_data[0, 0, :],
+        y=converted_arm_data[0, 1, :],
+        z=converted_arm_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='black',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='black',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+
+    fig.add_trace(go.Scatter3d(  # joint marker
+        x=converted_leg_data[0, 0, :],
+        y=converted_leg_data[0, 1, :],
+        z=converted_leg_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='red',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='red',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+    fig.add_trace(go.Scatter3d(  # joint marker
+        x=converted_torso_data[0, 0, :],
+        y=converted_torso_data[0, 1, :],
+        z=converted_torso_data[0, 2, :],
+        marker=dict(
+            size=0,
+            color='blue',
+            #                                                                     colorscale='Inferno',
+        ),
+        line=dict(
+            width=5,
+            color='blue',
+            #                                                                     colorscale='Inferno'
+        )
+    ),
+    )
+
+
+    def frame_args(duration):
+        return {
+            "frame": {"duration": duration},
+            "mode": "immediate",
+            "fromcurrent": True,
+            "transition": {"duration": duration, "easing": "linear"},
+        }
+
+
+    sliders = [
+        {
+            "pad": {"b": 10, "t": 60},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": [
+                {
+                    "args": [[f.name], frame_args(0)],
+                    "label": str(k),
+                    "method": "animate",
+                }
+                for k, f in enumerate(fig.frames)
+            ],
+        }
+    ]
+
+    # Layout
+    fig.update_layout(
+        title='body movement',
+        width=600,
+        height=500,
+        #         paper_bgcolor='black',
+        #         plot_bgcolor='rgba(0,0,0,0)',
+        scene=dict(
+            zaxis=dict(
+                range=[-32767, 32767],
+                autorange=False,
+                # #                                color='white',
+                #                               ticksuffix = "%"
+            ),
+            aspectratio=dict(x=2, y=2, z=1),
+            xaxis=dict(
+                range=[-32767, 32767],
+                autorange=False,
+                #                         showgrid=False,
+                #                               showticklabels=False,
+            ),
+
+            #
+            yaxis=dict(
+                range=[-32767, 32767],
+                autorange=False,
+                #                             showgrid=False,
+                #                               showticklabels=False,
+            ),
+            xaxis_title='x',
+            yaxis_title='y',
+            zaxis_title='z',
+        ),
+        updatemenus=[
+            {
+                "buttons": [
+                    {
+                        "args": [None, frame_args(50)],
+                        "label": "&#9654;",  # play symbol
+                        "method": "animate",
+                    },
+                    {
+                        "args": [[None], frame_args(0)],
+                        "label": "&#9724;",  # pause symbol
+                        "method": "animate",
+                    },
+                ],
+                "direction": "left",
+                "pad": {"r": 10, "t": 70},
+                "type": "buttons",
+                "x": 0.1,
+                "y": 0,
+            }
+        ],
+        sliders=sliders,
+        showlegend=False,
+    )
+
+    fig.show()
+    fig.write_html("test.html")
+
 
 
