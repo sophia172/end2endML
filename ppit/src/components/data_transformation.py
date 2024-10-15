@@ -249,8 +249,7 @@ class ReadMat():
             raise CustomException(e, sys)
 
         self.ui_grid = ui_grid  # (row in one module, column number in one module, number of module), MCU at left
-        self.df = self.df.iloc[range(0, len(self.df), self.ui_grid[
-            -1])]  # The df only updates one module in each row, only choose data every 6 rows
+
         self.df.index = pd.to_datetime(self.df.index,
                                        format='%m_%d_%Y_%H_%M_%S_%f')  # change time columnn to the correct format
         self.time_stamp = self.df.index.to_numpy()

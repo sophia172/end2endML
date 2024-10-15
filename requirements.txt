@@ -2,3 +2,4 @@ pyyaml
 timm
 torch
 vit-pytorch
+tensorflow==2.15.*
