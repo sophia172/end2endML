@@ -25,7 +25,7 @@ DEFAULT_SKELETON = {'hips': [-111, 9557, 15726],
 
 class Converter():
 
-    def __init__(self, joint_to_index:dict=None):
+    def __init__(self, config_path:str=None):
         """
         Initializes the Converter with a mapping from joints to indices.
 
@@ -33,8 +33,12 @@ class Converter():
         In the keypoint coordinates data file, joint index does not have neck and hips
         In the keypoint rotatioin angle data file, joint index need to append 'hips' and 'neck' as the last two index
         """
-        self.joint_to_index = joint_to_index
-        self.index_to_joint = {idx: joint for joint, idx in joint_to_index.items()}
+        # Load configuration
+        config = reader(config_path)
+        self.joint_to_index = {joint_name.lower().replace(" ", ""): joint_index for joint_name, joint_index in
+                       config["joints"].items()}
+
+        self.index_to_joint = {idx: joint for joint, idx in self.joint_to_index.items()}
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
@@ -474,10 +478,7 @@ def Decompose_R_ZXY(R):
     return thetaz, thetay, thetax
 
 if __name__=="__main__":
-    from data_ingestion import JOINTS
 
-    from ppit.src.components.data_ingestion import DataLoader
-    import sys
 
 
     from ppit.src.utils import reader
@@ -485,14 +486,16 @@ if __name__=="__main__":
     print(data['keypoint'].shape)
 
     from ppit.src.utils import reader
-    config = reader("../../../config/data_processor_example.yml")
-    joints_dict = {joint_name.lower().replace(" ", ""): joint_index for joint_name, joint_index in
-                   config["joints"].items()}
-
-    joint_coords_converter = Converter(joints_dict)
+    # config = reader("../../../config/data_processor_example.yml")
+    # joints_dict = {joint_name.lower().replace(" ", ""): joint_index for joint_name, joint_index in
+    #                config["joints"].items()}
+    # print("joints_dict", joints_dict)
+    joint_coords_converter = Converter("../../../config/data_processor_example.yml")
     angle_data = joint_coords_converter.coordinate2angle(data['keypoint'])
-    print(joint_coords_converter.kpts.keys())
-    print(joint_coords_converter.kpts["leftshoulder_angles"][:5])
+    # print(joint_coords_converter.kpts.keys())
+    # print(joint_coords_converter.kpts["leftshoulder_angles"][:5])
+
+    # print("angle_data", angle_data.shape)
 
     # data_path = '../../../data/vertexAI_PPIT_data.csv'
     # from ppit.src.components.data_ingestion import DataLoader
@@ -502,7 +505,7 @@ if __name__=="__main__":
     #
     # X_train, X_test, y_train, y_test = train_test_split(*data, shuffle=False)
     # print(y_test.shape)
-    joint_coords_converter = Converter(joints_dict)
+    joint_coords_converter = Converter("../../../config/data_processor_example.yml")
     coords = joint_coords_converter.angle2coordinate(angle_data)
     print(coords[:5, 0, :])
 
