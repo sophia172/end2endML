@@ -41,8 +41,8 @@ class Converter():
 
         self.index_to_joint = {idx: joint for joint, idx in self.joint_to_index.items()}
 
-        self.joint_to_index = {self.index_to_joint[idx]: idx for idx in range(1, 15)}
-        self.index_to_joint = {idx: self.index_to_joint[idx] for idx in range(1, 15)}
+        self.joint_to_index = {self.index_to_joint[idx]: idx for idx in range(1, len(self.index_to_joint)+1)}
+        self.index_to_joint = {idx: self.index_to_joint[idx] for idx in range(1, len(self.index_to_joint)+1)}
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
@@ -108,9 +108,11 @@ class Converter():
 
         return np.swapaxes(angles_array, 0, 1)
 
-
+    def root_trajectory(self, coordinates_array: np.ndarray) -> np.ndarray:
+        assert coordinates_array.shape[1:] == (len(self.index_to_joint), 3), f"Expected shape (None, {len(self.index_to_joint)}, 3), but got {coordinates_array.shape}"
+        self.hip_coords = coordinates_array[:]
     @timing
-    def angle2coordinate(self, angles_array: np.ndarray) -> np.ndarray:
+    def angle2coordinate(self, angles_array: np.ndarray, root_trajectory=False) -> np.ndarray:
         assert angles_array.shape[-1] == 3, ("Angle array should have format in (x,y,z) axis, data shape "
                                                    "should be (frames, joint number, 3)")
 
@@ -124,8 +126,10 @@ class Converter():
 
 
         coordinates_dict = collections.defaultdict(list)
-
-        self.kpts['hips'] = np.ones(self.kpts['leftankle_angles'].shape) # change to hips rotation angle later  TODO
+        if root_trajectory is False:
+            self.kpts['hips'] = np.ones(self.kpts['leftankle_angles'].shape)
+        else:
+            self.kpts['hips'] = self.hip_coords
         self.kpts['joints'] = list(self.index_to_joint.values())
         if "hips" not in self.kpts['joints']: self.kpts['joints'] += ['hips']
         if "neck" not in self.kpts['joints']: self.kpts['joints'] += ['neck']
