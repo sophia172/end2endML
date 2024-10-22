@@ -453,7 +453,8 @@ class CNN():
 
 
 
-    def prep_data_for_model(self, X_train, X_test, y_train, y_test):
+    def prep_data_for_model(self, *args):
+        X_train, X_test, y_train, y_test = args
         train_dataset = tf.data.Dataset.from_generator(
             lambda: self.data_generator((X_train, y_train), self.config.train.batch_size),
             output_types=(tf.float32, tf.float32)).shuffle(
@@ -489,6 +490,18 @@ class CNN():
         except Exception as e:
             raise CustomException(e, sys)
 
+
+    def predict(self, X_test):
+        try:
+            self.model.predict(
+                X_test,
+                batch_size=self.config.train.batch_size
+            )
+
+            logging.info(f"Predicting process finished")
+        except Exception as e:
+            raise CustomException(e, sys)
+
     def save(self):
         try:
             self.model.save(self.model_dir)
@@ -498,14 +511,20 @@ class CNN():
 
 
 if __name__ == "__main__":
-    None
-    # model = CNN("../../../config/model_CNN_example.yml")
-    # model.build()
+    model = CNN("../../../config/model_CNN_example.yml")
+    model.build()
     # model.debug_compile_fit()
     # # model.compile()
     # model.save()
+    import random
+    X_train = np.random.rand(5, 10, 13, 24)
 
-    # x = torch.randn(1, 3, 24, 24)
+    X_train = random.random(5, 10, 13, 24)
+
+    X_train = random.random(5, 10, 13, 24)
+
+    X_train = random.random(5, 10, 13, 24)
+
     # model = cmt_ti()
 
     # print(model)

@@ -101,6 +101,9 @@ def ReadPickle(file_path: str):
             raise CustomException(e, sys)
 
 def join_path(*args):
+    """
+    Config path in different version and combine them together with separator in local environment
+    """
     paths = [os.path.normpath(arg) for arg in args]
     element_in_path = []
     for path in paths:

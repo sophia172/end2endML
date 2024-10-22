@@ -4,6 +4,7 @@ from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from ppit.src.utils import writer, scan_folder, basename
 import os
+import numpy as np
 from sklearn.ensemble import (
     RandomForestRegressor,
                                 )
@@ -58,6 +59,15 @@ class ModelTrainer:
                 self.model_setup[model_name]["model"].fit(X_train, X_test, y_train, y_test)
                 self.model_setup[model_name]["model"].save()
                 logging.info(f"Finished training pipeline for model {model_name}")
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        try:
+            for model_name in self.model_setup:
+                self.model_setup[model_name]["model"].model.predict()
+
+                logging.info(f"Initializing model {model_name}...")
         except Exception as e:
             raise CustomException(e, sys)
 
@@ -125,6 +135,8 @@ class BaselineSearch:
         except CustomException as e:
             logging.error(e)
             raise CustomException(e, sys)
+
+
 
 
 

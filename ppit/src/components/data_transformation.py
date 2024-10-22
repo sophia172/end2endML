@@ -104,12 +104,6 @@ class DataProcessor:
             data = data_aligner(frequency=self.frequency)
             logging.info("Aligned data in sensor and keypoint")
 
-            # transfer keypoint coordinates to 3D heatmap
-            # processor = keypoint_to_heatmap(heatmap_shape=self.config['heatmap_shape'],
-            #                                 axis_range=self.config['axis_range'])
-            # data['heatmap'] = processor(data['keypoint'])
-            # logging.info("Created heatmap")
-
             self.update_link_limit(data['keypoint'])
             logging.info("Changed link_limit")
             writer(data, os.path.join('data', file_name + '.p'))
@@ -365,7 +359,6 @@ class ReadMat():
             os.mkdir(os.path.dirname(export_path))
 
         df.to_csv(export_path)
-
 
 class ReadMoCap():
     def __init__(self, file_path, joints=None, marker_set_path=None, merge_point_label=None, axis_range=32767):
@@ -735,26 +728,32 @@ def reformat_keypoint(df):
     return data
 
 
-class read_csv():
-
-    def __init__(self):
-        return
-
-    def __call__(self, move_set, folder=''):
-        try:
-            csv_file = _check_file_unique_exist(os.path.join(folder, '*[sS]%s*.csv' % move_set[1:]))
-            self.df = pd.read_csv(csv_file, index_col=0)
-            logging.info("read file: " + csv_file)
-        except Exception as e:
-            logging.info("move_set list: " + ",".join(move_set))
-            raise CustomException(e, sys)
-        return reformat_file(self.df)
+# class read_csv():
+#
+#     def __init__(self):
+#         return
+#
+#     def __call__(self, move_set, folder=''):
+#         try:
+#             csv_file = _check_file_unique_exist(os.path.join(folder, '*[sS]%s*.csv' % move_set[1:]))
+#             self.df = pd.read_csv(csv_file, index_col=0)
+#             logging.info("read file: " + csv_file)
+#         except Exception as e:
+#             logging.info("move_set list: " + ",".join(move_set))
+#             raise CustomException(e, sys)
+#         return reformat_file(self.df)
 
 
 class AlignData:
     def __init__(self, file_dict):
         """
         File should be a dictionary with key as data type: chooose among sensor, pressure_map and keypoint
+        file_dict: { 'sensor': sensor_data_file_path,
+                    'pressure_map': pressure_data_file_path,
+                    'keypoint': keypoint_data_file_path
+                    }
+
+        
         """
         # Check if there is corresponding file
 
