@@ -208,7 +208,7 @@ class vit():
         with torch.no_grad():  # Disable gradient calculation
             for inputs, _ in dataloader:
                 inputs = inputs.to(self.device)  # Move inputs to GPU
-                y_pred = self.model(X)  # Perform forward pass
+                y_pred = self.model(inputs)  # Perform forward pass
                 predictions.append(y_pred.cpu())  # Move results back to CPU
 
         # Concatenate all predictions into a single tensor

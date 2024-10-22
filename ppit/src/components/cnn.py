@@ -309,10 +309,9 @@ class CNN():
                     model = eval(model)
                     x = model(**params)(x)
             OutputLayer = x
-            print("1", self.config.train.input.shape, OutputLayer.shape, InputLayer.shape)
+
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
-            print("2")
 
             logging.info(f"Compiling model with loss {self.config.train.loss}")
             return self.model.compile(optimizer=self.optimizer(),
