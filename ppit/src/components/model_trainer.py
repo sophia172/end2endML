@@ -147,14 +147,15 @@ if __name__=="__main__":
     from sklearn.model_selection import train_test_split
     from ppit.src.components.vit import vit
     import numpy as np
-    X_train = np.random.rand(256, 3, 14, 24)
-    X_test = np.random.rand(64, 3, 14, 24)
-    y_train = np.random.rand(256, 42)
-    y_test = np.random.rand(64, 42)
+    X_train = np.random.rand(256, 10, 13, 24)
+    X_test = np.random.rand(64, 10, 13, 24)
+    y_train = np.random.rand(256, 14, 3)
+    y_test = np.random.rand(64, 14, 3)
     # model = vit("../../config/")
-    # model.build()
-    trainer = ModelTrainer("../../../config/model_ViT_colabTEST.yml")
+
+    trainer = ModelTrainer("../../../config/model_CNN_example.yml")
     trainer(X_train, X_test, y_train, y_test)
+    trainer.predict(X_test)
     # # model.debug_compile_fit(X_train, X_test, y_train, y_test)
     # # model.compile()
     # model.fit(X_train, y_train, X_test, y_test)

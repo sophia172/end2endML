@@ -308,14 +308,16 @@ class CNN():
                 for model, params in block.items():
                     model = eval(model)
                     x = model(**params)(x)
-            OutputLayer = x * np.pi
-
+            OutputLayer = x
+            print("1", self.config.train.input.shape, OutputLayer.shape, InputLayer.shape)
             self.model = tf.keras.Model(InputLayer, OutputLayer)
             self.model.summary(print_fn=logging.info)
+            print("2")
 
             logging.info(f"Compiling model with loss {self.config.train.loss}")
             return self.model.compile(optimizer=self.optimizer(),
                                       loss=self.loss(),
+                                      run_eagerly=True
                                       )
 
             return
@@ -461,7 +463,6 @@ class CNN():
             buffer_size=self.config.train.shuffle,
             reshuffle_each_iteration=True).repeat(
             self.config.train.shuffle)
-
         test_dataset = tf.data.Dataset.from_generator(
             lambda: self.data_generator((X_test, y_test), self.config.train.batch_size),
             output_types=(tf.float32, tf.float32))
@@ -476,6 +477,8 @@ class CNN():
                 logging.info(f"Load saved weights to initial the fit")
 
             train_dataset, test_dataset = self.prep_data_for_model(X_train, X_test, y_train, y_test)
+            logging.info(f"X_train {X_train.shape}, X_test {X_test.shape}, y_train {y_train.shape}, "
+                         f"y_test {y_test.shape} prepped")
 
             self.model.fit(
                 train_dataset,
