@@ -65,11 +65,12 @@ class ModelTrainer:
     def predict(self, X: np.ndarray) -> np.ndarray:
         try:
             for model_name in self.model_setup:
-                self.model_setup[model_name]["model"].model.predict()
+                y_pred = self.model_setup[model_name]["model"].model.predict(X)
 
-                logging.info(f"Initializing model {model_name}...")
+                logging.info(f"Predicting model model {model_name}...")
         except Exception as e:
             raise CustomException(e, sys)
+        return y_pred
 
 
 class BaselineSearch:

@@ -491,10 +491,10 @@ class CNN():
             raise CustomException(e, sys)
 
 
-    def predict(self, X_test):
+    def predict(self, X):
         try:
             self.model.predict(
-                X_test,
+                X,
                 batch_size=self.config.train.batch_size
             )
 

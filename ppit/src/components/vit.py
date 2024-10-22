@@ -195,6 +195,26 @@ class vit():
         self.save()
         return
 
+    def predict(self, X):
+
+        dataset = TensorDataset(X)
+        dataloader = DataLoader(dataset,
+                                batch_size=self.config.train.batch_size,
+                                shuffle=False)
+
+        self.model.eval()  # Set model to evaluation mode
+        predictions = []
+
+        with torch.no_grad():  # Disable gradient calculation
+            for inputs, _ in dataloader:
+                inputs = inputs.to(self.device)  # Move inputs to GPU
+                y_pred = self.model(X)  # Perform forward pass
+                predictions.append(y_pred.cpu())  # Move results back to CPU
+
+        # Concatenate all predictions into a single tensor
+        return torch.cat(predictions)
+
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = super(vit, self).forward(x)  # Call Parent's forward method
