@@ -68,9 +68,10 @@ class ModelTrainer:
                 y_pred = self.model_setup[model_name]["model"].model.predict(X)
 
                 logging.info(f"Predicting model model {model_name}...")
+                return y_pred
         except Exception as e:
             raise CustomException(e, sys)
-        return y_pred
+
 
 
 class BaselineSearch:

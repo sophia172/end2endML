@@ -418,37 +418,19 @@ class CNN():
                              f"\n Prediction \n {np.isnan(layer_output).any()}\n "
                              f"y_batch \n {np.isnan(y_batch).any()}")
 
-                # grads = tape.gradient(loss, obj["variables"])
+
                 writer({"loss": loss,
                         "variables": self.model.trainable_variables},
                        f"variable/epoch{epoch}_step{step}.p")
-                # for grad in grads:
-                #     print(f"local pc computes grads {np.isnan(grad).any()}" )
-                # print(f"before saving {type(loss)}, {loss}", )
-                # obj = reader(f"variable/epoch{epoch}_step{step}.p")
-                # print(f"after saving {type(obj['loss'])}, {obj['loss']}")
-                # grads = tape.gradient(obj["loss"], obj["variables"])
-                # grads = tape.gradient(loss, obj["variables"])
-                # loss = tf.math.add(tf.math.add(0.5484536290168762, -loss), loss)
-
-                # print(f"after saving {type(loss)}, {loss}")
-                # for i in range(len(self.model.trainable_variables)):
-                #     self.model.trainable_variables[i].assign(obj["variables"][i])
-
-                # grads = tape.gradient(obj["loss"], self.model.trainable_variables)
                 grads = tape.gradient(loss, self.model.trainable_variables)
 
-                # print(grads[-1])
-                # writer({"loss": loss,
-                #         "variables": self.model.trainable_variables},
-                #        f"variable/epoch{epoch}_step{step}.p")
+
                 logging.info(f"check trainable_variable \n X \n {self.model.trainable_variables}")
-                # prev_grad=0
+
+
                 for grad in grads:
                     logging.info(f"grads has NaN value: \n {np.isnan(grad).any()}")
-                #     if np.isnan(grad).any():
-                #         logging.info(f"check grad before NaN \n X \n {prev_grad}")
-                #     prev_grad = grad
+
 
                 opt.apply_gradients(zip(grads, self.model.trainable_variables))
 
@@ -496,12 +478,13 @@ class CNN():
 
     def predict(self, X):
         try:
-            self.model.predict(
-                X,
-                batch_size=self.config.train.batch_size
-            )
+            y_pred = self.model.predict(
+                                        X,
+                                        batch_size=self.config.train.batch_size
+                                    )
 
             logging.info(f"Predicting process finished")
+            return y_pred
         except Exception as e:
             raise CustomException(e, sys)
 
