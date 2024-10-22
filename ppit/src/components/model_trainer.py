@@ -67,7 +67,17 @@ class ModelTrainer:
             for model_name in self.model_setup:
                 y_pred = self.model_setup[model_name]["model"].predict(X)
 
-                logging.info(f"Predicting model model {model_name}...")
+                logging.info(f"Predicting with model {model_name}...")
+                return y_pred
+        except Exception as e:
+            raise CustomException(e, sys)
+
+    def save(self, filepath: str) -> None:
+        try:
+            for model_name in self.model_setup:
+                y_pred = self.model_setup[model_name]["model"].save()
+
+                logging.info(f"Save model {model_name}...")
                 return y_pred
         except Exception as e:
             raise CustomException(e, sys)
