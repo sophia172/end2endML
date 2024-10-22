@@ -65,7 +65,7 @@ class ModelTrainer:
     def predict(self, X: np.ndarray) -> np.ndarray:
         try:
             for model_name in self.model_setup:
-                y_pred = self.model_setup[model_name]["model"].model.predict(X)
+                y_pred = self.model_setup[model_name]["model"].predict(X)
 
                 logging.info(f"Predicting model model {model_name}...")
                 return y_pred
@@ -148,13 +148,13 @@ if __name__=="__main__":
     from sklearn.model_selection import train_test_split
     from ppit.src.components.vit import vit
     import numpy as np
-    X_train = np.random.rand(256, 10, 13, 24)
-    X_test = np.random.rand(64, 10, 13, 24)
-    y_train = np.random.rand(256, 14, 3)
-    y_test = np.random.rand(64, 14, 3)
+    X_train = np.random.rand(256, 3, 14, 24)
+    X_test = np.random.rand(64, 3,14, 24)
+    y_train = np.random.rand(256, 42)
+    y_test = np.random.rand(64, 42)
     # model = vit("../../config/")
 
-    trainer = ModelTrainer("../../../config/model_CNN_example.yml")
+    trainer = ModelTrainer("../../../config/model_ViT_example.yml")
     trainer(X_train, X_test, y_train, y_test)
     trainer.predict(X_test)
     # # model.debug_compile_fit(X_train, X_test, y_train, y_test)
