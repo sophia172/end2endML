@@ -675,14 +675,14 @@ class ReadTracker():
             for key, df in joint_df.items()
         }
 
-        combined_df = pd.concat(
-            [joint_df_uniform_time_delta[self.index_joint[key]]
-             for key in range(1, len(self.index_joint) + 1)],
-            join="inner",
-            axis=1)
+        self.combined_df = pd.concat(
+                                        [joint_df_uniform_time_delta[self.index_joint[key]]
+                                         for key in range(1, len(self.index_joint) + 1)],
+                                        join="inner",
+                                        axis=1)
 
-        # Need to be changed with the correct format of processed file name
-        self.save_data(combined_df, os.path.join(self.file_path, "keypoint.csv"))
+        self.time_stamp = self.combined_df.index.to_numpy()
+        return self.combined_df.to_numpy().reshape((len(self.combined_df), -1, 3))
 
     def save_data(self, df: pd.DataFrame, export_path):
         """
