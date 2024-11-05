@@ -1,4 +1,7 @@
 import sys
+
+from tensorboard.compat.tensorflow_stub.io.gfile import exists
+
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from ppit.src.utils import _check_file_unique_exist, reader, load_config
@@ -81,7 +84,7 @@ class DataProcessor:
         self.sensor = []
         self.pressure_map = []
         self.keypoint = []
-        self.config_filename, self.config, self.db_dir = load_config(config_path, folder="raw_data")
+        self.config_filename, self.config, self.db_dir = load_config(config_path, folder="raw")
         self.locate_file_info()
         return
 
@@ -101,6 +104,7 @@ class DataProcessor:
             logging.info("found keypoint data in " + file_name + 'csv')
 
             data_aligner = AlignData(self.df_file)
+            # Export data in DataFrame format
             data = data_aligner(frequency=self.frequency)
             logging.info("Aligned data in sensor and keypoint")
 
@@ -649,9 +653,66 @@ class ReadMoCap():
         print((lower_bound, upper_bound))
 
 class ReadTracker():
-    def __init__(self):
+    # TODO
+    def __init__(self, file_path, joints=None, axis_range=32767, ):
+        self.file_path = file_path # This is the folder where all tracker data is saved
+        self.axis_range = axis_range
+        self.dir_name = os.path.dirname(self.file_path)
+        self.joints = joints
+        self.index_joint = {val: key for key, val in joints.items()}
         return
 
+    def __call__(self, frequency=100):
+
+        # Extract all data from each file and add to a dictionary
+        joint_df = {}
+        for file in glob.glob(self.file_path+ '/*.csv'):
+            joint_df[self.extract_joint_name(file)] = self.extract_tracker_file(file)
+
+        # Uniform the time frame for each df in joint_df
+        joint_df_uniform_time_delta = {
+            key: self.uniform_time_delta(df, frequency=frequency) \
+            for key, df in joint_df.items()
+        }
+
+        combined_df = pd.concat(
+            [joint_df_uniform_time_delta[self.index_joint[key]]
+             for key in range(1, len(self.index_joint) + 1)],
+            join="inner",
+            axis=1)
+
+        # Need to be changed with the correct format of processed file name
+        self.save_data(combined_df, os.path.join(self.file_path, "keypoint.csv"))
+
+    def save_data(self, df: pd.DataFrame, export_path):
+        """
+        The data has time stamp as index
+        """
+
+        os.makedirs(os.path.dirname(export_path), exist_ok=True)
+        df.to_csv(export_path)
+        logging.info(f"Successfully save etee tracker data in csv file {export_path}")
+
+
+
+    def extract_tracker_file(self, file_path):
+        df = pd.read_csv(file_path)
+        df.index = pd.to_datetime(df.Date + " " + df.Time)
+        df = df.drop(columns=["Date", "Time", "c", "xs", "ys", "zs", "Tracker Label"])
+        joint_name = self.extract_joint_name(file_path)
+        df.columns = [str(self.joints[joint_name]) + " " + joint_name + " " + col \
+                      for col in df.columns]
+        return df
+
+    def extract_joint_name(self, file_path):
+        file_name = os.path.basename(file_path).split(".csv")[0]
+        file_name = file_name.replace("_", " ")
+        return file_name[0].upper() + file_name[1:]
+
+    def uniform_time_delta(self, df, frequency=100): # frequency unit is Hz
+        time_delta = str(int(1000 / frequency)) + 'ms'
+        df = df.resample(time_delta).median().interpolate(limit_direction='forward')
+        return df
 
 def reformat_file(df):
     if 'row' in df.columns[-2]:  # I chose a random column name here to check which file it is.
