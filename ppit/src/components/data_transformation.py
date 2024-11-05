@@ -662,7 +662,7 @@ class ReadTracker():
         self.index_joint = {val: key for key, val in joints.items()}
         return
 
-    def __call__(self, frequency=100):
+    def extract_tracker_data(self, frequency=100):
 
         # Extract all data from each file and add to a dictionary
         joint_df = {}
