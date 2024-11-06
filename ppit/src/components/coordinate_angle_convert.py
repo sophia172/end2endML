@@ -6,9 +6,9 @@ from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from ppit.src.utils import reader, writer
 
-DEFAULT_SKELETON = {'hips': [-111, 9557, 15726],
-                     'lefthip': [4118,	-9089,	15819],
-                     'righthip': [-4340,	-10026,	15634],
+DEFAULT_SKELETON = {'hips': [-111, -9557, 15726],
+                     'lefthip': [3218,	-9440,	15750],
+                     'righthip': [-3440,	-9675,	15703],
                      'righttoe': [-3029,	-11039,	149],
                      'lefttoe': [2665,	-10929,	81],
                      'neck': [-86, -8889, 28144],
@@ -63,6 +63,7 @@ class Converter():
 
         self.kpts['hierarchy'] = hierarchy
         self.kpts['root_joint'] = 'hips'
+        self.root_trajectory = None
         self.get_bone_lengths(default=True)
         self.get_base_skeleton()
         logging.info(f"Finished initialising keypoint angle converter component")
@@ -93,12 +94,9 @@ class Converter():
 
         self.add_hips_and_neck()
         self.median_filter()
-
         # Normalise the skeleton, optional
-        # self.get_bone_lengths()
-        # self.get_base_skeleton(filtered_kpts)
-        
-
+        self.get_bone_lengths(default=False)
+        self.get_base_skeleton()
         self.calculate_joint_angles()
 
         ######################Turn dict to array
@@ -106,13 +104,13 @@ class Converter():
         angles_array.append(self.kpts['hips_angles'])
         angles_array.append(self.kpts['neck_angles'])
 
+        self.root_trajectory = self.kpts["hips"]
+
         return np.swapaxes(angles_array, 0, 1)
 
-    def root_trajectory(self, coordinates_array: np.ndarray) -> np.ndarray:
-        assert coordinates_array.shape[1:] == (len(self.index_to_joint), 3), f"Expected shape (None, {len(self.index_to_joint)}, 3), but got {coordinates_array.shape}"
-        self.hip_coords = coordinates_array[:]
+
     @timing
-    def angle2coordinate(self, angles_array: np.ndarray, root_trajectory=False) -> np.ndarray:
+    def angle2coordinate(self, angles_array: np.ndarray) -> np.ndarray:
         assert angles_array.shape[-1] == 3, ("Angle array should have format in (x,y,z) axis, data shape "
                                                    "should be (frames, joint number, 3)")
 
@@ -126,10 +124,10 @@ class Converter():
 
 
         coordinates_dict = collections.defaultdict(list)
-        if root_trajectory is False:
-            self.kpts['hips'] = np.ones(self.kpts['leftankle_angles'].shape)
+        if self.root_trajectory is None:
+            self.kpts['hips'] = np.zeros(self.kpts['leftankle_angles'].shape)
         else:
-            self.kpts['hips'] = self.hip_coords
+            self.kpts['hips'] = self.root_trajectory #self.hip_coords
         self.kpts['joints'] = list(self.index_to_joint.values())
         if "hips" not in self.kpts['joints']: self.kpts['joints'] += ['hips']
         if "neck" not in self.kpts['joints']: self.kpts['joints'] += ['neck']
@@ -167,6 +165,8 @@ class Converter():
 
         coordinates_array = [coordinates_dict[self.index_to_joint[idx]] for idx in
                         sorted(self.joint_to_index.values())]
+
+
         return np.swapaxes(coordinates_array, 0, 1)
 
     def get_rotation_chain(self, joint, hierarchy, frame_rotations):
@@ -242,6 +242,7 @@ class Converter():
         self.kpts['bone_lengths'] = bone_lengths
         return self.kpts
 
+
     def get_base_skeleton(self, normalization_bone='leftknee'):
 
         # this defines a generic skeleton to which we can apply rotations to
@@ -270,7 +271,7 @@ class Converter():
         offset_directions['rightwrist'] = np.array([-1, 0, 0])
 
         # set bone normalization length. Set to 1 if you dont want normalization
-        normalization = self.kpts['bone_lengths'][normalization_bone]
+        normalization = 1
 
         # base skeleton set by multiplying offset directions by measured bone lengths. In this case we use the average of two sided limbs. E.g left and right hip averaged
         base_skeleton = {'hips': np.array([0, 0, 0])}
@@ -288,26 +289,30 @@ class Converter():
         _set_length('shoulder')
         _set_length('elbow')
         _set_length('wrist')
-        base_skeleton['neck'] = offset_directions['neck'] * (body_lengths['neck'] / normalization)
+        base_skeleton['neck'] = offset_directions['neck']
 
         self.kpts['offset_directions'] = offset_directions
-        self.kpts['base_skeleton'] = {'hips': np.array([0, 0, 0]),
-                                     'lefthip': np.array([-0.5,  0,  0]),
-                                     'righthip': np.array([0.5, 0, 0]),
-                                     'leftknee': np.array([0., -1,  0.]),
-                                     'rightknee': np.array([0, -1,  0]),
-                                     'leftankle': np.array([0, -1,  0]),
-                                     'rightankle': np.array([ 0, -1,  0]),
-                                     'lefttoe': np.array([ 0, -0.5,  0]),
-                                     'righttoe': np.array([ 0, -0.5,  0]),
-                                     'leftshoulder': np.array([0.5, 0, 0]),
-                                     'rightshoulder': np.array([-0.5,  0,  0]),
-                                     'leftelbow': np.array([0.9, 0, 0]),
-                                     'rightelbow': np.array([-0.9,  0,  0]),
-                                     'leftwrist': np.array([0.8, 0, 0]),
-                                     'rightwrist': np.array([-0.8,  0,  0]),
-                                     'neck': np.array([0, 1.3, 0])}
+        self.kpts['base_skeleton'] = offset_directions
+            # {
+            #                          'lefthip': np.array([-0.5,  0,  0]),
+            #                          'righthip': np.array([0.5, 0, 0]),
+            #                          'leftknee': np.array([0., -1,  0.]),
+            #                          'rightknee': np.array([0, -1,  0]),
+            #                          'leftankle': np.array([0, -1,  0]),
+            #                          'rightankle': np.array([ 0, -1,  0]),
+            #                          'lefttoe': np.array([ 0, -0.5,  0]),
+            #                          'righttoe': np.array([ 0, -0.5,  0]),
+            #                          'leftshoulder': np.array([0.5, 0, 0]),
+            #                          'rightshoulder': np.array([-0.5,  0,  0]),
+            #                          'leftelbow': np.array([0.9, 0, 0]),
+            #                          'rightelbow': np.array([-0.9,  0,  0]),
+            #                          'leftwrist': np.array([0.8, 0, 0]),
+            #                          'rightwrist': np.array([-0.8,  0,  0]),
+            #                          'neck': np.array([0, 1.3, 0])}
         self.kpts['normalization'] = normalization
+        self.kpts['base_skeleton'] = {key:  value * (body_lengths[key] / normalization) \
+                                      for key, value in self.kpts['base_skeleton'].items()}
+        self.kpts['base_skeleton']['hip'] = np.array([0, 0, 0])
         return
 
     def add_hips_and_neck(self):
@@ -492,19 +497,17 @@ if __name__=="__main__":
 
     frame = 0
     keypoint_data = reader("../../../data/20230626_5_set_3_1.p")['keypoint']
-    print(keypoint_data[frame])
+    # print(keypoint_data[frame])
 
     joint_coords_converter1 = Converter("../../../config/data_processor_example.yml")
     angle_data = joint_coords_converter1.coordinate2angle(keypoint_data)
-    print(angle_data[frame])
-
+    # print(angle_data[frame])
     joint_coords_converter2 = Converter("../../../config/data_processor_example.yml")
-    converted_data = joint_coords_converter2.angle2coordinate(angle_data)
-    print(converted_data[frame])
-
+    converted_data = joint_coords_converter1.angle2coordinate(angle_data)
+    #
     # converted_data[:, :, [0, 1, 2]] = converted_data[:, :, [0, 2, 1]]
     # converted_data += np.array([0, 0, 2])
-    converted_data *= 5000
+    # converted_data *= 5000
 
     body = [[6, 4, 2, 1, 3, 5],  # arm joints
             [12, 10, 8, 7, 9, 11],  # leg joints
