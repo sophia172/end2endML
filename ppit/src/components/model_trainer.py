@@ -14,12 +14,12 @@ from xgboost import XGBRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import r2_score
 from ppit.src.components.cnn import CNN
-from ppit.src.components.vit import vit
+from ppit.src.components.vit import ViTTrainer
 import torch
 
 MODEL = {
             'CNN': CNN,
-            'ViT': vit
+            'ViT': ViTTrainer
     }
 
 class ModelTrainer:
@@ -156,12 +156,12 @@ class BaselineSearch:
 if __name__=="__main__":
     from ppit.src.components.data_ingestion import DataLoader
     from sklearn.model_selection import train_test_split
-    from ppit.src.components.vit import vit
+    from ppit.src.components.vit import ViTTrainer
     import numpy as np
     X_train = np.random.rand(256, 3, 14, 24)
     X_test = np.random.rand(64, 3,14, 24)
-    y_train = np.random.rand(256, 42)
-    y_test = np.random.rand(64, 42)
+    y_train = np.random.rand(256, 48)
+    y_test = np.random.rand(64, 48)
     # model = vit("../../config/")
 
     trainer = ModelTrainer("../../../config/model_ViT_example.yml")
