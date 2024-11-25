@@ -156,6 +156,74 @@ class ViTTrainer:
         return torch.cat(predictions).detach().numpy()
 
 
+class ViTInference:
+    """
+    Class for performing inference with a ViT (Vision Transformer) model.
+    """
+
+    def __init__(self, model_path):
+        """
+        Initialize the ViTInference instance.
+
+        Args:
+            model_path (str): Path to the pretrained ViT model.
+        """
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        try:
+            self.model = torch.load(model_path).to(self.device)
+        except Exception as e:
+            logging.error(f"Error loading ViT model from {model_path}: {str(e)}")
+            raise RuntimeError("Model loading failed. Check the model path and format.") from e
+
+    def dataloader(self, X, y=None, batch_size=32):
+        """
+        Create a DataLoader for the input data.
+
+        Args:
+            X (np.ndarray): Input features.
+            y (np.ndarray, optional): Target labels. Default is None.
+            batch_size (int): Number of samples per batch. Default is 32.
+
+        Returns:
+            DataLoader: DataLoader object for the dataset.
+        """
+        X_tensor = torch.from_numpy(X.astype(np.float32))
+        if y is not None:
+            y_tensor = torch.from_numpy(y.astype(np.float32))
+            dataset = TensorDataset(X_tensor, y_tensor)
+        else:
+            dataset = TensorDataset(X_tensor)
+
+        # Adjust batch size if only one sample is present
+        effective_batch_size = 1 if len(X) == 1 else batch_size
+        return DataLoader(dataset, batch_size=effective_batch_size, shuffle=True)
+
+    def predict(self, X):
+        """
+        Perform inference on the input data.
+
+        Args:
+            X (np.ndarray): Input features for prediction.
+
+        Returns:
+            np.ndarray: Predictions from the model.
+        """
+        self.model.eval()
+        predictions = []
+
+        with torch.no_grad():
+            for batch in self.dataloader(X):
+                inputs = batch[0].to(self.device)
+                y_pred = self.model(inputs)
+                predictions.append(y_pred.cpu())
+
+        return torch.cat(predictions).numpy()
+
+
 if __name__ == "__main__":
     v = ViTTrainer(configuration_path="../../../config/model_ViT_example.yml")
     v.build()
