@@ -10,7 +10,7 @@ from vit_pytorch import ViT
 
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
-from ppit.src.utils import load_config, none_or_str, has_nan, writer, reader
+from ppit.src.utils import load_config
 
 
 # EarlyStopping class
@@ -164,7 +164,7 @@ class ViTInference:
             else "cpu"
         )
         try:
-            self.model = torch.load(model_path).to(self.device)
+            self.model = torch.load(model_path, map_location=self.device)
         except Exception as e:
             logging.error(f"Error loading ViT model from {model_path}: {str(e)}")
             raise RuntimeError("Model loading failed. Check the model path and format.") from e
