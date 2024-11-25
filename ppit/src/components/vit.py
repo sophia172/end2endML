@@ -5,9 +5,7 @@ import random
 import numpy as np
 from datetime import datetime
 from tqdm import tqdm
-from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
-from torch.utils.tensorboard import SummaryWriter
 from vit_pytorch import ViT
 
 from ppit.src.exception import CustomException
@@ -102,7 +100,6 @@ class ViTTrainer:
         logging.info("Start fitting process")
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        summarywriter = SummaryWriter(f"{self.model_dir}/runs/trainer_{timestamp}")
         loss_fn = self.loss_fn()
         optimizer = self.optimizer()
         early_stopping = EarlyStopping(patience=3, min_delta=0.001)
@@ -122,13 +119,6 @@ class ViTTrainer:
 
             avg_vloss = running_vloss / (i + 1)
             logging.info(f"Train Loss: {avg_loss:.4f}, Validation Loss: {avg_vloss:.4f}")
-
-            summarywriter.add_scalars(
-                'Training vs. Validation Loss',
-                {'Training': avg_loss, 'Validation': avg_vloss},
-                epoch + 1
-            )
-            summarywriter.flush()
 
             if early_stopping(avg_vloss):
                 logging.info("Early stopping triggered")
@@ -237,9 +227,10 @@ if __name__ == "__main__":
     v.fit(X_train, X_test, y_train, y_test)
     output = v.predict(X_val)
 
-    plt.hist(output, label="Prediction")
-    plt.legend()
-    plt.show()
-    plt.hist(y_train, label="y_train")
-    plt.legend()
-    plt.show()
+    # from matplotlib import pyplot as plt
+    # plt.hist(output, label="Prediction")
+    # plt.legend()
+    # plt.show()
+    # plt.hist(y_train, label="y_train")
+    # plt.legend()
+    # plt.show()
