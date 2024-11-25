@@ -6,7 +6,6 @@ from typing import Callable
 from ppit.src.exception import CustomException
 from ppit.src.logger import logging
 from dataclasses import dataclass
-from sklearn.metrics import r2_score
 import pandas as pd
 import numpy as np
 from functools import wraps
