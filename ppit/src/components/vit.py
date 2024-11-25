@@ -192,7 +192,7 @@ class ViTInference:
         effective_batch_size = 1 if len(X) == 1 else batch_size
         return DataLoader(dataset, batch_size=effective_batch_size, shuffle=True)
 
-    def predict(self, X):
+    def predict(self, X, skeleton_shape=(14,3)):
         """
         Perform inference on the input data.
 
@@ -209,7 +209,7 @@ class ViTInference:
             for batch in self.dataloader(X):
                 inputs = batch[0].to(self.device)
                 y_pred = self.model(inputs)
-                predictions.append(y_pred.cpu())
+                predictions.append(y_pred.cpu().reshape(skeleton_shape))
 
         return torch.cat(predictions).numpy()
 
