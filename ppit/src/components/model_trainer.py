@@ -37,6 +37,8 @@ class ModelTrainer:
             model, self.model_setup[config_filename]["model"] = self.check_model_configuration_name(config_filename)
             self.model_setup[config_filename]["config_file"] = config_file
             logging.info(f"Successfully find configuration for {model}")
+            if len(model_config_files) == 1:
+                self.model = self.model_setup[config_filename]["model"].model
 
 
 
