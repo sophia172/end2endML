@@ -14,6 +14,7 @@ from ppit.src.utils import writer
 import glob
 
 
+
 @dataclass
 # class DataTransformationConfig:
 #     # TODO
@@ -363,6 +364,117 @@ class ReadMat():
             os.mkdir(os.path.dirname(export_path))
 
         df.to_csv(export_path)
+
+
+
+class AxisRotation:
+    def __init__(self, mat_corners):
+        """
+        Initialize the AxisRotation class with mat_corners.
+        """
+        self._mat_centre = None
+        self.validate_mat_corners(mat_corners)
+        self._reset_z = False # Initiate reset_z when the mat z axis is not 0
+        self.set_mat_centre(mat_corners)  # This needs to be set before calculating the rotation angle.
+
+    def __call__(self, coordinates):
+        """
+        Apply the rotation to the provided coordinates.
+        """
+        coordinates -= self._mat_centre
+        if self._reset_z:
+            coordinates -= self._z_shift
+
+        angle = self.rotated_angle()
+        return self.rotate_z(coordinates, theta=angle)
+
+    def validate_mat_corners(self, mat_corners):
+        """
+        Validate mat_corners and ensure they are correctly placed on the floor.
+        """
+        mat_corners = np.array(mat_corners)
+        shape = mat_corners.shape
+
+        if shape == (4, 3):
+            mat_max_length = np.max(
+                [np.linalg.norm(mat_corners[3] - mat_corners[i]) for i in range(3)]
+            )
+            if np.any(np.abs(mat_corners[:, -1]) > mat_max_length / 100):
+                logging.error("The mat corners are not on the floor.")
+                self._reset_z = True
+                self._z_shift = np.mean(mat_corners[:,-1])
+
+        elif shape == (2, 3):
+            if np.max(np.abs(mat_corners[:, -1])) > np.linalg.norm(mat_corners[0] - mat_corners[1]) / 100:
+                logging.error("The mat corners are not on the floor.")
+                self._reset_z = True
+                self._z_shift = np.mean(mat_corners[:,-1])
+
+        else:
+            logging.error("mat_corners must have a shape of (4, 3) or (2, 3).")
+            raise ValueError("mat_corners must have a shape of (4, 3) or (2, 3).")
+
+        # Only the first two corners are needed, masterbox_corner and off masterbox corner on the longside.
+        self.mat_corners = mat_corners[:2]
+
+
+    def set_mat_centre(self, mat_corners):
+        """
+        Calculate and set the mat center based on mat_corners.
+        """
+        mat_corners = np.array(mat_corners)
+
+        if mat_corners.shape == (4, 3):
+            self._mat_centre = np.mean(mat_corners, axis=0)
+        elif mat_corners.shape == (2, 3):
+            long_side = mat_corners[1] - mat_corners[0]
+            long_side_norm = np.linalg.norm(long_side)
+            short_side_norm = long_side_norm / 18 * 6  # Ratio of long side to short side is 180:60
+            short_side = self.rotate_z(long_side, -np.pi / 2) / long_side_norm * short_side_norm
+            self._mat_centre = (mat_corners[0] + mat_corners[1]) / 2 + short_side / 2
+        else:
+            logging.error("mat_corners must have a shape of (4, 3) or (2, 3).")
+            raise ValueError("mat_corners must have a shape of (4, 3) or (2, 3).")
+        return
+
+    def rotated_angle(self):
+        """
+        Calculate the signed angle between the mat side vector and the x-axis.
+        """
+        x_axis = np.array([1, 0, 0])
+        mat_side = self.mat_corners[1] - self.mat_corners[0]
+        v2 = x_axis / np.linalg.norm(x_axis)
+        v1 = mat_side / np.linalg.norm(mat_side)
+
+        # Compute the signed angle
+        angle = np.arctan2(v1[0] * v2[1] - v1[1] * v2[0], np.dot(v1, v2))
+        return angle
+
+    @staticmethod
+    def rotate_z(coordinates, theta=0):
+        """
+        Rotate 3D points around the Z-axis by a given angle.
+        """
+        if not isinstance(coordinates, np.ndarray):
+            logging.error("Input coordinates must be a numpy array.")
+            raise ValueError("Input coordinates must be a numpy array.")
+
+        if coordinates.ndim != 3 or coordinates.shape[2] != 3:
+            logging.error("Input coordinates must have shape (frames, num_points, 3).")
+            raise ValueError("Input coordinates must have shape (frames, num_points, 3).")
+
+        # Define the rotation matrix
+        R = np.array([
+            [np.cos(theta), -np.sin(theta), 0],
+            [np.sin(theta), np.cos(theta), 0],
+            [0, 0, 1]
+        ])
+
+        # Apply rotation using matrix multiplication
+        rotated_data = np.einsum('ij,fpj->fpi', R, coordinates)
+        logging.info("Rotation completed successfully.")
+        return rotated_data
+
 
 class ReadMoCap():
     def __init__(self, file_path, joints=None, marker_set_path=None, merge_point_label=None, axis_range=32767):
