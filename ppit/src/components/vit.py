@@ -1,7 +1,6 @@
 import os
 import sys
 import torch
-import random
 import numpy as np
 from datetime import datetime
 from tqdm import tqdm

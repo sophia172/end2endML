@@ -3,3 +3,4 @@ timm
 torch
 vit-pytorch
 tensorflow
+plotly
