@@ -60,12 +60,12 @@ class EteePoseVisualisation:
         if data is None:
             None
         else:
-            self.axis["x_min"] = min(self.axis["x_min"], np.min(data[:,:,0]))
-            self.axis["y_min"] = min(self.axis["y_min"], np.min(data[:, :, 1]))
-            self.axis["z_min"] = min(self.axis["z_min"], np.min(data[:, :, 2]))
-            self.axis["x_max"] = max(self.axis["x_max"], np.max(data[:, :, 0]))
-            self.axis["y_max"] = max(self.axis["y_max"], np.max(data[:, :, 1]))
-            self.axis["z_max"] = max(self.axis["z_max"], np.max(data[:, :, 2]))
+            self.axis["x_min"] = min(self.axis["x_min"], np.nanmin(data[:, :, 0]))
+            self.axis["y_min"] = min(self.axis["y_min"], np.nanmin(data[:, :, 1]))
+            self.axis["z_min"] = min(self.axis["z_min"], np.nanmin(data[:, :, 2]))
+            self.axis["x_max"] = max(self.axis["x_max"], np.nanmax(data[:, :, 0]))
+            self.axis["y_max"] = max(self.axis["y_max"], np.nanmax(data[:, :, 1]))
+            self.axis["z_max"] = max(self.axis["z_max"], np.nanmax(data[:, :, 2]))
 
     def set_body_data(self, keypoint):
         """
@@ -211,7 +211,7 @@ class EteePoseVisualisation:
             width=600,
             height=500,
             scene=dict(
-                aspectmode='cube',  # Ensures equal scaling across all axes
+                # aspectmode='cube',  # Ensures equal scaling across all axes
                 xaxis=dict(
                     title='X',  # Label for X axis
                     range=[self.axis["x_min"], self.axis["x_max"]],  # Set range based on min and max of X axis
