@@ -826,6 +826,94 @@ class ReadTracker():
         df = df.resample(time_delta).median().interpolate(limit_direction='forward')
         return df
 
+
+class CleanTracker():
+    def __init__(self):
+        return
+
+    @staticmethod
+    def find_ratio(input_data, frame_num=0):
+        data = input_data.copy()
+        mat_1 = data[frame_num, 12, :]
+        mat_2 = data[frame_num, 13, :]
+        mat_3 = data[frame_num, 14, :]
+        v = mat_3 - mat_1
+        magnitude_v = np.linalg.norm(v)
+        return 1 / magnitude_v * 17600 * 2
+
+    @staticmethod
+    def sort_large_data_error(input_data, ratio):
+        joint_data = input_data.copy()
+        import pandas as pd
+        if np.max(np.abs(joint_data)) > 1000:
+            threshold = 20000
+        else:
+            threshold = 20000 / ratio
+
+        mask = np.abs(joint_data[:, :, 0]) > threshold
+        true_indices = np.argwhere(mask)
+
+        # Expand the mask if any match is found
+        for idx in true_indices:
+            row, col = idx
+            # Expand to include rows [row-2, row+2] around the detected position
+            mask[max(row - 50, 0):min(row + 3, joint_data.shape[0]), col] = True
+
+        # Replace [0, 0, 0] with NaN
+        joint_data[mask] = np.nan
+        # print(joint_data[750:910, 2, :])
+        for i in range(joint_data.shape[1]):  # Loop over the third axis
+            # Extract 2D slice along the third axis
+            slice_2d = joint_data[:, i, :]
+
+            # Interpolate along the second axis for each row
+            df = pd.DataFrame(slice_2d)
+            df_interpolated = df.interpolate(method='linear', limit_direction="both")
+            joint_data[:, i, :] = df_interpolated.to_numpy()
+        return joint_data
+
+    @staticmethod
+    def sort_go2origin_error(input_data):
+        joint_data = input_data.copy()
+        import pandas as pd
+        mask = np.all(joint_data == 0, axis=2)
+
+        # print(joint_data[750:910, 2, :])
+        # Find the indices where the mask is True
+        true_indices = np.argwhere(mask)
+
+        # Expand the mask if any match is found
+        for idx in true_indices:
+            row, col = idx
+            # Expand to include rows [row-2, row+2] around the detected position
+            mask[max(row - 2, 0):min(row + 3, joint_data.shape[0]), col] = True
+
+        # Replace [0, 0, 0] with NaN
+        joint_data[mask] = np.nan
+        # print(joint_data[750:910, 2, :])
+        for i in range(joint_data.shape[1]):  # Loop over the third axis
+            # Extract 2D slice along the third axis
+            slice_2d = joint_data[:, i, :]
+
+            # Interpolate along the second axis for each row
+            df = pd.DataFrame(slice_2d)
+            df_interpolated = df.interpolate(method='linear', limit_direction="both")
+            joint_data[:, i, :] = df_interpolated.to_numpy()
+        return joint_data
+
+    @staticmethod
+    def limit_index(raw_data, start, end):
+        return raw_data[start:end]
+
+    @staticmethod
+    def clip_middle(raw_data, end, start):
+        return np.concatenate((raw_data[:end], raw_data[start:]), axis=0)
+
+    @staticmethod
+    def clip_both(raw_data, frame_start, frame_end, clip_frame_start, clip_frame_end):
+        return np.concatenate((raw_data[frame_start:clip_frame_start],
+                               raw_data[clip_frame_end:frame_end]), axis=0)
+
 def reformat_file(df):
     if 'row' in df.columns[-2]:  # I chose a random column name here to check which file it is.
         print(' This file contains sensor data')
