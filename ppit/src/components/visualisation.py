@@ -10,7 +10,7 @@ class EteePoseVisualisation:
         Initialize the body part indices and check for mat corner.
         """
         self.body = body
-        self.axis = collections.defaultdict()
+        self.axis = collections.defaultdict(int)
         self.mat_corner = len(body) > 3  # Check if there are mat corners (if the body has 4 parts)
 
     def __call__(self, keypoint=None, mat=None, gt=None):
@@ -27,19 +27,30 @@ class EteePoseVisualisation:
         self.update_max_axis(keypoint)
         self.add_body_frames(body_data)  # Create frames for animation
 
-        if mat is not None:
-            self.set_pressure_map_data(mat)
-            self.add_pressure_map_frames()
 
         if self.mat_corner:
             self.set_mat_corner_data(keypoint)
             self.add_mat_corner_frames()
 
-        if gt is not None:
-            body_data = self.set_body_data(gt)  # Set body part data (arm, leg, torso)
-            self.update_max_axis(keypoint)
-            self.add_body_frames(body_data, color=["black"] * 3)  # Create frames for ground truth data
+        if mat is not None:
+            self.set_pressure_map_data(mat)
+            self.add_pressure_map_frames()
 
+
+        if gt is not None:
+            body_data_gt = self.set_body_data(gt)  # Set body part data (arm, leg, torso)
+            self.update_max_axis(keypoint)
+            self.add_body_frames(body_data_gt, color=["black"] * 3)  # Create frames for ground truth data
+
+        # Add initial traces
+        self._add_initial_traces(body_data, color=['black', 'red', 'blue'])
+        if self.mat_corner:
+            self.fig.add_trace(self._create_trace(self.mat_tracker_data, 0, color='green'))
+        if mat is not None:
+            self.fig.add_trace(
+                go.Surface(x=self.mat_x, y=self.mat_y, z=self.pressure_map_data[0], cmin=0, cmax=100))
+        if gt is not None:
+            self._add_initial_traces(body_data_gt, color=['black', 'red', 'blue'])
         self.plot()
 
     def update_max_axis(self, data):
@@ -49,9 +60,12 @@ class EteePoseVisualisation:
         if data is None:
             None
         else:
-            self.axis["x_min"], self.axis["x_max"] = np.min(data[:,:,0]), np.max(data[:,:,0])
-            self.axis["y_min"], self.axis["y_max"] = np.min(data[:,:,1]), np.max(data[:,:,1])
-            self.axis["z_min"], self.axis["z_max"] = np.min(data[:,:,2]), np.max(data[:,:,2])
+            self.axis["x_min"] = min(self.axis["x_min"], np.min(data[:,:,0]))
+            self.axis["y_min"] = min(self.axis["y_min"], np.min(data[:, :, 1]))
+            self.axis["z_min"] = min(self.axis["z_min"], np.min(data[:, :, 2]))
+            self.axis["x_max"] = max(self.axis["x_max"], np.max(data[:, :, 0]))
+            self.axis["y_max"] = max(self.axis["y_max"], np.max(data[:, :, 1]))
+            self.axis["z_max"] = max(self.axis["z_max"], np.max(data[:, :, 2]))
 
     def set_body_data(self, keypoint):
         """
@@ -102,8 +116,6 @@ class EteePoseVisualisation:
                 self._create_trace(torso_data, k, color=color[2])
             ]
 
-        # Add initial traces
-        self._add_initial_traces(body_data, color=color)
 
     def add_mat_corner_frames(self):
         """
@@ -122,8 +134,6 @@ class EteePoseVisualisation:
         for k, frame in enumerate(self.fig.frames):
             frame.data = list(frame.data) + [
                 go.Surface(x=self.mat_x, y=self.mat_y, z=self.pressure_map_data[k])]
-
-        self.fig.add_trace(go.Surface(x=self.mat_x, y=self.mat_y, z=self.pressure_map_data[0], cmin=0, cmax=100))
 
     def save(self, file_path):
         """
