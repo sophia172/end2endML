@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -8,6 +10,7 @@ class EteePoseVisualisation:
         Initialize the body part indices and check for mat corner.
         """
         self.body = body
+        self.axis = collections.defaultdict()
         self.mat_corner = len(body) > 3  # Check if there are mat corners (if the body has 4 parts)
 
     def __call__(self, keypoint=None, mat=None, gt=None):
@@ -21,6 +24,7 @@ class EteePoseVisualisation:
         self.set_frames()
 
         body_data = self.set_body_data(keypoint)  # Set body part data (arm, leg, torso)
+        self.update_max_axis(keypoint)
         self.add_body_frames(body_data)  # Create frames for animation
 
         if mat is not None:
@@ -33,9 +37,21 @@ class EteePoseVisualisation:
 
         if gt is not None:
             body_data = self.set_body_data(gt)  # Set body part data (arm, leg, torso)
+            self.update_max_axis(keypoint)
             self.add_body_frames(body_data, color=["black"] * 3)  # Create frames for ground truth data
 
         self.plot()
+
+    def update_max_axis(self, data):
+        """
+        Find the max and min x, y, z axis in keypoint data
+        """
+        if data is None:
+            None
+        else:
+            self.axis["x_min"], self.axis["x_max"] = np.min(data[:,:,0]), np.max(data[:,:,0])
+            self.axis["y_min"], self.axis["y_max"] = np.min(data[:,:,1]), np.max(data[:,:,1])
+            self.axis["z_min"], self.axis["z_max"] = np.min(data[:,:,2]), np.max(data[:,:,2])
 
     def set_body_data(self, keypoint):
         """
@@ -184,6 +200,21 @@ class EteePoseVisualisation:
             title='Body Visualisation',
             width=600,
             height=500,
+            scene=dict(
+                aspectmode='cube',  # Ensures equal scaling across all axes
+                xaxis=dict(
+                    title='X',  # Label for X axis
+                    range=[self.axis["x_min"], self.axis["x_max"]],  # Set range based on min and max of X axis
+                ),
+                yaxis=dict(
+                    title='Y',  # Label for Y axis
+                    range=[self.axis["y_min"], self.axis["y_max"]],  # Set range based on min and max of Y axis
+                ),
+                zaxis=dict(
+                    title='Z',  # Label for Z axis
+                    range=[self.axis["z_min"], self.axis["z_max"]],  # Set range based on min and max of Z axis
+                ),
+            ),
             updatemenus=[{
                 "buttons": [
                     {"args": [None, self.frame_args(50)], "label": "&#9654;", "method": "animate"},
