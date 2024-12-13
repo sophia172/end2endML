@@ -211,7 +211,7 @@ class EteePoseVisualisation:
             width=600,
             height=500,
             scene=dict(
-                # aspectmode='cube',  # Ensures equal scaling across all axes
+                aspectmode='cube',  # Ensures equal scaling across all axes
                 xaxis=dict(
                     title='X',  # Label for X axis
                     range=[self.axis["x_min"], self.axis["x_max"]],  # Set range based on min and max of X axis
