@@ -72,7 +72,7 @@ class Converter():
 
 
 
-    @timing
+    # @timing
     def coordinate2angle(self, coordinates_array: np.ndarray) -> np.ndarray:
         """
         Converts a coordinates array (x, y, z) into an array of angles.
@@ -109,7 +109,7 @@ class Converter():
         return np.swapaxes(angles_array, 0, 1)
 
 
-    @timing
+    # @timing
     def angle2coordinate(self, angles_array: np.ndarray) -> np.ndarray:
         assert angles_array.shape[-1] == 3, ("Angle array should have format in (x,y,z) axis, data shape "
                                                    "should be (frames, joint number, 3)")
