@@ -117,8 +117,8 @@ class Converter():
             self.kpts[joint + '_angles'] = angles_array[:, idx-1, :]
 
         # # Add hips and neck data from the last two columns
-        # self.kpts['hips_angles'] = angles_array[:, idx, :]
-        # self.kpts['neck_angles'] = angles_array[:, idx+1, :]
+        self.kpts['hips_angles'] = np.zeros(angles_array[:, idx-1, :].shape)
+        self.kpts['neck_angles'] = np.zeros(angles_array[:, idx-1, :].shape)
 
 
         coordinates_dict = collections.defaultdict(list)
