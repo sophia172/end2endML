@@ -141,7 +141,9 @@ class Converter():
 
             # for plotting
             for _j in self.kpts['joints']:
-                if _j == 'hips': continue
+                if _j == 'hips':
+                    coordinates_dict[_j].append([0, 0, 0])
+                    continue
 
                 # get hierarchy of how the joint connects back to root joint
                 hierarchy = self.kpts['hierarchy'][_j]
@@ -163,7 +165,6 @@ class Converter():
 
         coordinates_array = [coordinates_dict[self.index_to_joint[idx]] for idx in
                         sorted(self.joint_to_index.values())]
-
 
         return np.swapaxes(coordinates_array, 0, 1)
 
