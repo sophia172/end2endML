@@ -41,8 +41,6 @@ class Converter():
 
         self.index_to_joint = {idx: joint for joint, idx in self.joint_to_index.items()}
 
-        self.joint_to_index = {self.index_to_joint[idx]: idx for idx in range(1, len(self.index_to_joint)+1)}
-        self.index_to_joint = {idx: self.index_to_joint[idx] for idx in range(1, len(self.index_to_joint)+1)}
 
         self.kpts = {}
         self.kpts['joints'] = list(self.joint_to_index.keys())
